@@ -49,6 +49,10 @@ contract TrustScoring is ZamaEthereumConfig, Ownable2Step {
     /// @dev Total number of addresses with active (non-revoked) trust scores.
     uint256 public totalScoredAddresses;
 
+    /// @dev Plaintext tier cache: 0 = LOW, 1 = MEDIUM, 2 = HIGH.
+    ///      Only populated by plaintext setters (setTrustScorePlaintext, batchSetScores).
+    mapping(address => uint8) private _tierCache;
+
     // ──────────────────────────────────────────────────────────────────
     //  Events
     // ──────────────────────────────────────────────────────────────────
@@ -159,6 +163,7 @@ contract TrustScoring is ZamaEthereumConfig, Ownable2Step {
         euint64 encrypted = FHE.asEuint64(clamped);
 
         _setScore(account, encrypted);
+        _tierCache[account] = _computeTier(clamped);
     }
 
     // ──────────────────────────────────────────────────────────────────
@@ -183,6 +188,7 @@ contract TrustScoring is ZamaEthereumConfig, Ownable2Step {
             uint64 clamped = scores[i] > MAX_SCORE ? uint64(MAX_SCORE) : scores[i];
             euint64 encrypted = FHE.asEuint64(clamped);
             _setScore(accounts[i], encrypted);
+            _tierCache[accounts[i]] = _computeTier(clamped);
         }
     }
 
@@ -284,6 +290,18 @@ contract TrustScoring is ZamaEthereumConfig, Ownable2Step {
         return _isExpired(account);
     }
 
+    /**
+     * @notice Returns the plaintext trust tier for `account`: 2 = HIGH, 1 = MEDIUM, 0 = LOW.
+     * @dev    Only accurate when the score was set via a plaintext setter
+     *         (setTrustScorePlaintext or batchSetScores). Scores set via
+     *         encrypted input will return 0 (uncached).
+     */
+    function getTrustTierPlaintext(
+        address account
+    ) external view scored(account) returns (uint8) {
+        return _tierCache[account];
+    }
+
     // ──────────────────────────────────────────────────────────────────
     //  Access Grants
     // ──────────────────────────────────────────────────────────────────
@@ -319,6 +337,7 @@ contract TrustScoring is ZamaEthereumConfig, Ownable2Step {
     function revokeScore(address account) external onlyOracle scored(account) {
         _trustScores[account] = euint64.wrap(0);
         _hasScore[account] = false;
+        _tierCache[account] = 0;
         lastScoreUpdate[account] = 0;
         totalScoredAddresses--;
 
@@ -356,5 +375,14 @@ contract TrustScoring is ZamaEthereumConfig, Ownable2Step {
      */
     function _isExpired(address account) internal view returns (bool) {
         return block.timestamp > lastScoreUpdate[account] + SCORE_EXPIRY;
+    }
+
+    /**
+     * @dev Computes the plaintext tier from a plaintext score.
+     */
+    function _computeTier(uint64 score) internal pure returns (uint8) {
+        if (score >= HIGH_TRUST_THRESHOLD) return 2;
+        if (score >= MEDIUM_TRUST_THRESHOLD) return 1;
+        return 0;
     }
 }

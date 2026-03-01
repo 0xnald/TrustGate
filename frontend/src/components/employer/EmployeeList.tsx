@@ -17,6 +17,7 @@ interface EmployeeData {
   hireDate: bigint;
   lastPayDate: bigint;
   role: string;
+  tier: "high" | "medium" | "low" | "unscored";
 }
 
 interface EmployeeListProps {
@@ -24,8 +25,10 @@ interface EmployeeListProps {
   isOwner: boolean;
 }
 
+const TIER_MAP: Record<number, "high" | "medium" | "low"> = { 2: "high", 1: "medium", 0: "low" };
+
 export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListProps) {
-  const { payGramCore, contractsReady } = useWeb3();
+  const { payGramCore, trustScoring, contractsReady } = useWeb3();
   const [employees, setEmployees] = useState<EmployeeData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [useMock, setUseMock] = useState(false);
@@ -44,12 +47,27 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
       for (const addr of addresses) {
         try {
           const emp = await payGramCore.getEmployee(addr);
+
+          let tier: "high" | "medium" | "low" | "unscored" = "unscored";
+          if (trustScoring) {
+            try {
+              const scored = await trustScoring.hasScore(addr);
+              if (scored) {
+                const t = await trustScoring.getTrustTierPlaintext(addr);
+                tier = TIER_MAP[Number(t)] ?? "unscored";
+              }
+            } catch {
+              // TrustScoring query failed — keep "unscored"
+            }
+          }
+
           empData.push({
             wallet: emp.empWallet,
             isActive: emp.isActive,
             hireDate: emp.hireDate,
             lastPayDate: emp.lastPayDate,
             role: emp.role,
+            tier,
           });
         } catch {
           // Skip if getEmployee fails
@@ -63,7 +81,7 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
     } finally {
       setIsLoading(false);
     }
-  }, [payGramCore]);
+  }, [payGramCore, trustScoring]);
 
   useEffect(() => {
     if (contractsReady) {
@@ -148,7 +166,7 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
                     ? item.status === "active"
                     : item.isActive;
                   const roleName = m ? item.role : item.role;
-                  const tier = m ? item.tier : "unscored";
+                  const tier = m ? item.tier : item.tier;
                   const hireDate = m
                     ? new Date(item.hireDate).toLocaleDateString("en-US", {
                         year: "numeric",

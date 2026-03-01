@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import hre from "hardhat";
 
 // ── Sepolia Deployed Addresses ───────────────────────────────────────
-const TRUST_SCORING = "0x458AA964DF9E6ae9F5B2Db33E1B395C10bbA263A";
+const TRUST_SCORING = "0xb239eFe265df2eAD499AeF2d5ECD1b2924da9Fe9";
 const PAY_GRAM_TOKEN = "0xC97C848E7021AdFC36269ddc5e39E54939E81704";
 const PAY_GRAM_CORE = "0x331048736e7dC599E46187CaBa00dcC46952a7d7";
 
