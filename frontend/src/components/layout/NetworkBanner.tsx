@@ -9,7 +9,7 @@ export default function NetworkBanner() {
   const { isConnected, isSupportedChain, switchChain } = useWeb3();
   const [dismissed, setDismissed] = useState(false);
 
-  // Connected on correct network — no banner
+  // Connected on correct network -- no banner
   if (isConnected && isSupportedChain) return null;
 
   // Dismissed by user
@@ -21,10 +21,10 @@ export default function NetworkBanner() {
     <div
       className={cn(
         "relative flex items-center gap-3 px-4 py-3 rounded-xl border-l-4 mb-6",
-        "bg-surface/60 backdrop-blur-xl border border-white/[0.06]",
+        "bg-white border border-gray-200 dark:bg-slate-800 dark:border-slate-700",
         isWrongNetwork
-          ? "border-l-warning"
-          : "border-l-secondary"
+          ? "border-l-amber-500"
+          : "border-l-blue-500"
       )}
     >
       {/* Icon */}
@@ -32,8 +32,8 @@ export default function NetworkBanner() {
         className={cn(
           "flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg",
           isWrongNetwork
-            ? "bg-warning/10 text-warning"
-            : "bg-secondary/10 text-secondary"
+            ? "bg-amber-50 text-amber-600 dark:bg-amber-900/30"
+            : "bg-blue-50 text-blue-600 dark:bg-blue-900/30"
         )}
       >
         {isWrongNetwork ? (
@@ -48,7 +48,7 @@ export default function NetworkBanner() {
         <p
           className={cn(
             "text-sm font-medium",
-            isWrongNetwork ? "text-warning" : "text-text-secondary"
+            isWrongNetwork ? "text-amber-700 dark:text-amber-400" : "text-gray-600 dark:text-slate-300"
           )}
         >
           {isWrongNetwork
@@ -56,7 +56,7 @@ export default function NetworkBanner() {
             : "Connect your wallet to interact with contracts"}
         </p>
         {isWrongNetwork && (
-          <p className="text-xs text-text-muted mt-0.5">
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
             PayGram operates on Ethereum Mainnet or Sepolia testnet
           </p>
         )}
@@ -69,7 +69,7 @@ export default function NetworkBanner() {
           onClick={() => switchChain(1)}
           className={cn(
             "flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold",
-            "bg-warning/10 text-warning hover:bg-warning/20",
+            "bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50",
             "transition-colors duration-200"
           )}
         >
@@ -82,7 +82,7 @@ export default function NetworkBanner() {
       <button
         type="button"
         onClick={() => setDismissed(true)}
-        className="flex-shrink-0 p-1 rounded-md text-text-muted hover:text-text hover:bg-white/[0.05] transition-colors"
+        className="flex-shrink-0 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-slate-700 transition-colors"
       >
         <X size={14} />
       </button>

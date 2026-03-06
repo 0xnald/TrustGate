@@ -78,12 +78,12 @@ export default function EmployerDashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-xs text-text-muted mb-6">
-        <Link href="/" className="hover:text-text transition-colors">
+      <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-slate-500 mb-6">
+        <Link href="/" className="hover:text-gray-700 dark:hover:text-slate-200 transition-colors">
           Home
         </Link>
         <ChevronRight size={12} />
-        <span className="text-text-secondary">Employer</span>
+        <span className="text-gray-500 dark:text-slate-400">Employer</span>
       </div>
 
       {/* Network Banner */}
@@ -91,10 +91,10 @@ export default function EmployerDashboard() {
 
       {/* View Mode Banner */}
       {showDashboard && contractsReady && !isOwner && (
-        <div className="flex items-center gap-2.5 px-4 py-3 mb-4 rounded-xl bg-white/[0.04] border border-white/[0.08]">
-          <Eye size={16} className="text-text-muted shrink-0" />
-          <p className="text-sm text-text-secondary">
-            <span className="font-medium text-text">View Mode</span>
+        <div className="flex items-center gap-2.5 px-4 py-3 mb-4 rounded-xl bg-blue-50 border border-blue-200 dark:bg-blue-900/30 dark:border-blue-800">
+          <Eye size={16} className="text-blue-600 shrink-0" />
+          <p className="text-sm text-gray-600 dark:text-slate-300">
+            <span className="font-medium text-gray-900 dark:text-slate-100">View Mode</span>
             {" "}&mdash; Connect as contract owner to manage payroll
           </p>
         </div>
@@ -103,10 +103,10 @@ export default function EmployerDashboard() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-text">
+          <h1 className="text-2xl font-heading font-bold text-gray-900 dark:text-slate-100">
             Employer Dashboard
           </h1>
-          <p className="text-sm text-text-secondary mt-1">
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
             Manage employees, execute payroll, and track payments
           </p>
         </div>
@@ -123,23 +123,23 @@ export default function EmployerDashboard() {
       </div>
 
       {!showDashboard && (
-        <div className="glass-card p-12 text-center">
-          <Wallet size={48} className="mx-auto mb-4 text-text-muted" />
-          <h2 className="text-lg font-heading font-bold text-text mb-2">
+        <div className="card p-12 text-center">
+          <Wallet size={48} className="mx-auto mb-4 text-gray-300 dark:text-slate-600" />
+          <h2 className="text-lg font-heading font-bold text-gray-900 dark:text-slate-100 mb-2">
             {!isConnected ? "Connect Your Wallet" : "Switch Network"}
           </h2>
-          <p className="text-sm text-text-secondary mb-1">
+          <p className="text-sm text-gray-500 dark:text-slate-400 mb-1">
             {!isConnected
               ? "Connect your wallet to access the employer dashboard"
               : "Please switch to Sepolia to use this dashboard"}
           </p>
-          <p className="text-xs text-text-muted">
+          <p className="text-xs text-gray-400 dark:text-slate-500">
             Showing demo data below
           </p>
         </div>
       )}
 
-      {/* ─── Stats Row ─── */}
+      {/* Stats Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8 mb-8">
         <StatCard
           title="Total Employees"
@@ -167,7 +167,7 @@ export default function EmployerDashboard() {
         />
       </div>
 
-      {/* ─── Tab Navigation ─── */}
+      {/* Tab Navigation */}
       <Tabs
         tabs={TABS}
         activeTab={activeTab}
@@ -175,7 +175,7 @@ export default function EmployerDashboard() {
         className="mb-6"
       />
 
-      {/* ─── Tab Content ─── */}
+      {/* Tab Content */}
       <div className="min-h-[400px]">
         {activeTab === "employees" && (
           <EmployeeList onAddEmployee={() => setAddDialogOpen(true)} isOwner={isOwner} />
@@ -184,7 +184,7 @@ export default function EmployerDashboard() {
         {activeTab === "history" && <PayrollHistory />}
       </div>
 
-      {/* ─── Add Employee Dialog ─── */}
+      {/* Add Employee Dialog */}
       <AddEmployee
         open={addDialogOpen}
         onClose={() => setAddDialogOpen(false)}

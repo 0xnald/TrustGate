@@ -34,8 +34,8 @@ export default function AddressDisplay({
       type="button"
       onClick={handleCopy}
       className={cn(
-        "inline-flex items-center gap-1.5 font-mono text-sm text-text-secondary",
-        "hover:text-text transition-colors group",
+        "inline-flex items-center gap-1.5 font-mono text-sm text-gray-500 dark:text-slate-400",
+        "hover:text-gray-900 dark:hover:text-slate-100 transition-colors group",
         className
       )}
       title="Click to copy address"

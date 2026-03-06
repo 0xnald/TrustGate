@@ -57,7 +57,7 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
                 tier = TIER_MAP[Number(t)] ?? "unscored";
               }
             } catch {
-              // TrustScoring query failed — keep "unscored"
+              // TrustScoring query failed -- keep "unscored"
             }
           }
 
@@ -102,7 +102,7 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-heading font-bold text-text">
+        <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-100">
           Employee Roster
         </h3>
         <div className="flex items-center gap-2">
@@ -125,7 +125,7 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
               Add Employee
             </Button>
             {!isOwner && (
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 rounded-lg bg-surface-elevated text-[11px] text-text-muted whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-white/[0.08]">
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 rounded-lg bg-gray-900 dark:bg-slate-700 text-[11px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 Only contract owner can add employees
               </span>
             )}
@@ -134,10 +134,10 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
       </div>
 
       {displayData.length === 0 ? (
-        <div className="glass-card-static p-12 text-center">
-          <Users size={40} className="mx-auto mb-3 text-text-muted" />
-          <p className="text-sm font-medium text-text mb-1">No employees yet</p>
-          <p className="text-xs text-text-muted mb-4">
+        <div className="card-static p-12 text-center">
+          <Users size={40} className="mx-auto mb-3 text-gray-300 dark:text-slate-600" />
+          <p className="text-sm font-medium text-gray-900 dark:text-slate-100 mb-1">No employees yet</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mb-4">
             Add your first team member to get started
           </p>
           <Button size="sm" onClick={onAddEmployee} disabled={!isOwner}>
@@ -145,11 +145,11 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
           </Button>
         </div>
       ) : (
-        <div className="glass-card-static overflow-hidden">
+        <div className="card-static overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-text-muted border-b border-white/[0.06]">
+                <tr className="text-left text-gray-400 dark:text-slate-500 border-b border-gray-200 dark:border-slate-700">
                   <th className="px-4 py-3 font-medium text-xs">Status</th>
                   <th className="px-4 py-3 font-medium text-xs">Address</th>
                   <th className="px-4 py-3 font-medium text-xs">Role</th>
@@ -158,7 +158,7 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
                   <th className="px-4 py-3 font-medium text-xs">Hire Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.03]">
+              <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                 {displayData.map((item, idx) => {
                   const m = isMock(item);
                   const addr = m ? item.address : item.wallet;
@@ -178,7 +178,7 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
                   return (
                     <tr
                       key={addr + idx}
-                      className="text-text-secondary hover:bg-white/[0.02] transition-colors"
+                      className="text-gray-600 hover:bg-gray-50 dark:text-slate-300 dark:hover:bg-slate-700/50 transition-colors"
                     >
                       <td className="px-4 py-3">
                         <StatusDot
@@ -198,12 +198,12 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
                         <TrustBadge tier={tier} size="sm" />
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1.5 text-xs text-text-muted font-mono">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-gray-400 dark:text-slate-500 font-mono">
                           <Lock size={10} />
                           Encrypted
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-text-muted">
+                      <td className="px-4 py-3 text-xs text-gray-400 dark:text-slate-500">
                         {hireDate}
                       </td>
                     </tr>

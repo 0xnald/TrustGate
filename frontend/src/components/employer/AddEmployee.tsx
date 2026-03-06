@@ -123,13 +123,13 @@ export default function AddEmployee({
           </Button>
 
           {!contractsReady && (
-            <p className="flex items-center gap-1.5 text-xs text-warning">
+            <p className="flex items-center gap-1.5 text-xs text-amber-600">
               <AlertCircle size={12} />
               Connect wallet to a supported network first
             </p>
           )}
 
-          <p className="text-[11px] text-text-muted leading-relaxed">
+          <p className="text-[11px] text-gray-400 leading-relaxed">
             Salary is encrypted on-chain via FHE. Only the employee and
             employer can decrypt their own values.
           </p>
@@ -139,8 +139,8 @@ export default function AddEmployee({
           <div
             className={`flex items-center gap-2 p-3 rounded-lg text-sm ${
               status.type === "success"
-                ? "bg-primary-muted text-primary"
-                : "bg-danger-muted text-danger"
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-red-50 text-red-700"
             }`}
           >
             {status.type === "success" ? (

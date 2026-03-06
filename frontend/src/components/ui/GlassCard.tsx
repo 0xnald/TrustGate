@@ -2,34 +2,24 @@
 
 import { cn } from "@/lib/utils";
 
-interface GlassCardProps {
+interface CardProps {
   children: React.ReactNode;
   className?: string;
   hover?: boolean;
-  variant?: "default" | "primary" | "warning" | "danger";
   onClick?: () => void;
 }
 
-const glowMap = {
-  default: "",
-  primary: "glow-green",
-  warning: "glow-yellow",
-  danger: "glow-red",
-};
-
-export default function GlassCard({
+export default function Card({
   children,
   className,
   hover = true,
-  variant = "default",
   onClick,
-}: GlassCardProps) {
+}: CardProps) {
   return (
     <div
       onClick={onClick}
       className={cn(
-        hover ? "glass-card" : "glass-card-static",
-        glowMap[variant],
+        hover ? "card" : "card-static",
         onClick && "cursor-pointer",
         className
       )}

@@ -52,12 +52,12 @@ export default function SalaryView() {
 
   if (!hasChecked) {
     return (
-      <div className="glass-card p-8 text-center glow-green">
+      <div className="card p-8 text-center border-l-4 border-l-primary">
         <Lock size={32} className="mx-auto mb-4 text-primary" />
-        <h3 className="text-lg font-heading font-bold text-text mb-2">
+        <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-slate-100 mb-2">
           Your Salary
         </h3>
-        <p className="text-sm text-text-secondary mb-6">
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">
           Load your encrypted employment information
         </p>
         <Button
@@ -70,7 +70,7 @@ export default function SalaryView() {
           {isLoading ? "Loading..." : "Load My Info"}
         </Button>
         {!contractsReady && (
-          <p className="flex items-center justify-center gap-1.5 mt-3 text-xs text-text-muted">
+          <p className="flex items-center justify-center gap-1.5 mt-3 text-xs text-gray-400 dark:text-slate-500">
             <AlertCircle size={12} />
             Will show demo data if contracts unavailable
           </p>
@@ -81,9 +81,9 @@ export default function SalaryView() {
 
   if (isActive === false) {
     return (
-      <div className="glass-card-static p-8 text-center">
-        <AlertCircle size={32} className="mx-auto mb-4 text-text-muted" />
-        <p className="text-sm text-text-secondary">
+      <div className="card-static p-8 text-center">
+        <AlertCircle size={32} className="mx-auto mb-4 text-gray-300 dark:text-slate-600" />
+        <p className="text-sm text-gray-500 dark:text-slate-400">
           Your wallet is not registered as an active employee.
         </p>
       </div>
@@ -91,13 +91,13 @@ export default function SalaryView() {
   }
 
   return (
-    <div className="glass-card p-6 glow-green space-y-5">
+    <div className="card p-6 border-l-4 border-l-primary space-y-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-heading font-bold text-text">
+        <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-100">
           Your Salary
         </h3>
         {useMock && (
-          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-warning-muted text-warning border border-warning/20">
+          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
             Demo Data
           </span>
         )}
@@ -107,18 +107,18 @@ export default function SalaryView() {
       <div className="py-6 text-center">
         {decrypted ? (
           <div className="animate-fade-in">
-            <p className="text-4xl font-heading font-bold text-text">
+            <p className="text-4xl font-heading font-bold text-gray-900 dark:text-slate-100">
               5,000{" "}
               <span className="text-lg text-primary">cUSDC</span>
             </p>
-            <p className="text-xs text-text-muted mt-1">per month</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">per month</p>
           </div>
         ) : (
           <div>
-            <p className="text-4xl font-mono font-bold text-text-muted tracking-widest">
+            <p className="text-4xl font-mono font-bold text-gray-300 dark:text-slate-600 tracking-widest">
               ******
             </p>
-            <p className="text-xs text-text-muted mt-1 flex items-center justify-center gap-1">
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1 flex items-center justify-center gap-1">
               <Lock size={10} />
               Encrypted with FHE
             </p>
@@ -145,26 +145,26 @@ export default function SalaryView() {
         )}
       </Button>
 
-      <p className="text-[11px] text-text-muted text-center leading-relaxed">
+      <p className="text-[11px] text-gray-400 dark:text-slate-500 text-center leading-relaxed">
         Only you can see this. Encrypted with FHE on-chain.
       </p>
 
       {/* Details */}
       <div className="grid grid-cols-2 gap-3 pt-2">
-        <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-          <p className="text-[10px] text-text-muted uppercase tracking-wider">
+        <div className="p-3 rounded-xl bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+          <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-wider">
             Role
           </p>
-          <p className="text-sm font-medium text-text mt-0.5">
+          <p className="text-sm font-medium text-gray-900 dark:text-slate-100 mt-0.5">
             {role ?? "Unknown"}
           </p>
         </div>
-        <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-          <p className="text-[10px] text-text-muted uppercase tracking-wider">
+        <div className="p-3 rounded-xl bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+          <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-wider">
             Last Payment
           </p>
-          <p className="text-sm font-medium text-text mt-0.5 flex items-center gap-1">
-            <Calendar size={12} className="text-text-muted" />
+          <p className="text-sm font-medium text-gray-900 dark:text-slate-100 mt-0.5 flex items-center gap-1">
+            <Calendar size={12} className="text-gray-400 dark:text-slate-500" />
             Feb 1, 2026
           </p>
         </div>

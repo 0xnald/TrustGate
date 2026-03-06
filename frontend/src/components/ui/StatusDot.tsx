@@ -9,9 +9,9 @@ interface StatusDotProps {
 }
 
 const colorMap = {
-  active: "bg-primary",
+  active: "bg-emerald-500",
   pending: "bg-warning",
-  inactive: "bg-text-muted",
+  inactive: "bg-gray-300",
   error: "bg-danger",
 };
 

@@ -15,24 +15,24 @@ interface StatCardProps {
 
 const accentMap = {
   primary: {
-    bg: "bg-primary-muted",
+    bg: "bg-blue-50 dark:bg-blue-900/30",
     text: "text-primary",
     border: "border-l-primary",
   },
   secondary: {
-    bg: "bg-secondary-muted",
-    text: "text-secondary",
-    border: "border-l-secondary",
+    bg: "bg-gray-100 dark:bg-slate-700",
+    text: "text-gray-600 dark:text-slate-300",
+    border: "border-l-gray-400",
   },
   warning: {
-    bg: "bg-warning-muted",
-    text: "text-warning",
-    border: "border-l-warning",
+    bg: "bg-amber-50 dark:bg-amber-900/30",
+    text: "text-amber-600",
+    border: "border-l-amber-500",
   },
   danger: {
-    bg: "bg-danger-muted",
-    text: "text-danger",
-    border: "border-l-danger",
+    bg: "bg-red-50 dark:bg-red-900/30",
+    text: "text-red-600",
+    border: "border-l-red-500",
   },
 };
 
@@ -49,19 +49,19 @@ export default function StatCard({
   return (
     <div
       className={cn(
-        "glass-card-static p-5 border-l-2",
+        "card-static p-5 border-l-4",
         accent.border,
         className
       )}
     >
       <div className="flex items-start justify-between">
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+          <p className="text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-slate-500">
             {title}
           </p>
-          <p className="text-2xl font-heading font-bold text-text">{value}</p>
+          <p className="text-2xl font-heading font-bold text-gray-900 dark:text-slate-100">{value}</p>
           {subtitle && (
-            <p className="text-xs text-text-secondary">{subtitle}</p>
+            <p className="text-xs text-gray-500 dark:text-slate-400">{subtitle}</p>
           )}
         </div>
         <div className={cn("p-2.5 rounded-xl", accent.bg)}>

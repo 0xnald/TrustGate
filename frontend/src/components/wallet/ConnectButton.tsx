@@ -20,10 +20,10 @@ function truncateAddr(address: string): string {
 }
 
 function getNetworkColor(chainId: number | null) {
-  if (!chainId) return "bg-text-muted";
-  if (chainId === 1) return "bg-primary";      // green for Mainnet
-  if (chainId === 11155111) return "bg-secondary"; // blue for Sepolia
-  return "bg-danger";                          // red for unsupported
+  if (!chainId) return "bg-gray-300";
+  if (chainId === 1) return "bg-emerald-500";      // green for Mainnet
+  if (chainId === 11155111) return "bg-blue-500";   // blue for Sepolia
+  return "bg-red-500";                              // red for unsupported
 }
 
 function getExplorerUrl(chainId: number | null, address: string) {
@@ -71,13 +71,13 @@ export default function ConnectButton() {
     });
   };
 
-  // ─── State 1: Actively connecting (only during real connection attempt) ───
+  // State 1: Actively connecting
   if (isLoading) {
     return (
       <button
         type="button"
         disabled
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-white/[0.03] border border-white/[0.06] text-text-muted"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 border border-gray-200 text-gray-400 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-500"
       >
         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
           <circle
@@ -99,16 +99,16 @@ export default function ConnectButton() {
     );
   }
 
-  // ─── State 2: Not connected — show Connect Wallet button ───
+  // State 2: Not connected
   if (!isConnected || !address) {
     return (
       <button
         type="button"
         onClick={connect}
         className={cn(
-          "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold",
-          "bg-primary text-black hover:bg-primary-hover active:scale-[0.98]",
-          "transition-all duration-200 shadow-lg shadow-primary/20"
+          "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold",
+          "bg-primary text-white hover:bg-primary-hover active:scale-[0.98]",
+          "transition-all duration-200"
         )}
       >
         <Wallet size={16} />
@@ -117,7 +117,7 @@ export default function ConnectButton() {
     );
   }
 
-  // ─── State 3: Connected but wrong network — show amber warning ───
+  // State 3: Connected but wrong network
   if (!isSupportedChain) {
     return (
       <div ref={dropdownRef} className="relative">
@@ -125,41 +125,41 @@ export default function ConnectButton() {
           type="button"
           onClick={() => setDropdownOpen(!dropdownOpen)}
           className={cn(
-            "inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm",
-            "bg-warning/10 border border-warning/20",
-            "hover:border-warning/40 transition-all duration-200"
+            "inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm",
+            "bg-amber-50 border border-amber-200 dark:bg-amber-900/30 dark:border-amber-800",
+            "hover:border-amber-300 dark:hover:border-amber-700 transition-all duration-200"
           )}
         >
           <span className="relative inline-flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full rounded-full bg-warning opacity-75 animate-ping" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-warning" />
+            <span className="absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75 animate-ping" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
           </span>
-          <span className="font-medium text-warning">Wrong Network</span>
+          <span className="font-medium text-amber-700 dark:text-amber-400">Wrong Network</span>
           <ChevronDown
             size={14}
             className={cn(
-              "text-warning/60 transition-transform duration-200",
+              "text-amber-400 transition-transform duration-200",
               dropdownOpen && "rotate-180"
             )}
           />
         </button>
 
         {dropdownOpen && (
-          <div className="absolute right-0 top-full mt-2 w-72 animate-slide-down z-50 bg-surface border border-white/[0.06] rounded-xl shadow-2xl overflow-hidden">
+          <div className="absolute right-0 top-full mt-2 w-72 animate-slide-down z-50 bg-white border border-gray-200 dark:bg-slate-800 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden">
             {/* Address header */}
-            <div className="p-3 border-b border-white/[0.06]">
-              <p className="text-xs text-text-muted mb-1">Connected Wallet</p>
-              <p className="text-xs font-mono text-text-secondary break-all">
+            <div className="p-3 border-b border-gray-200 dark:border-slate-700">
+              <p className="text-xs text-gray-400 mb-1">Connected Wallet</p>
+              <p className="text-xs font-mono text-gray-500 dark:text-slate-400 break-all">
                 {address}
               </p>
             </div>
 
             {/* Network info */}
-            <div className="px-3 py-2.5 border-b border-white/[0.06] flex items-center gap-2">
-              <Globe size={12} className="text-text-muted" />
-              <span className="text-xs text-text-muted">Network:</span>
-              <span className="text-xs font-medium text-danger flex items-center gap-1.5">
-                <span className="inline-flex h-1.5 w-1.5 rounded-full bg-danger" />
+            <div className="px-3 py-2.5 border-b border-gray-200 dark:border-slate-700 flex items-center gap-2">
+              <Globe size={12} className="text-gray-400" />
+              <span className="text-xs text-gray-400">Network:</span>
+              <span className="text-xs font-medium text-red-600 flex items-center gap-1.5">
+                <span className="inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
                 {chainName}
               </span>
             </div>
@@ -172,7 +172,7 @@ export default function ConnectButton() {
                   switchChain(1);
                   setDropdownOpen(false);
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-warning hover:bg-warning/10 rounded-lg transition-colors font-medium"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-amber-700 hover:bg-amber-50 rounded-lg transition-colors font-medium"
               >
                 <ArrowRightLeft size={14} />
                 Switch to Mainnet
@@ -185,7 +185,7 @@ export default function ConnectButton() {
                   switchToSepolia();
                   setDropdownOpen(false);
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-text-secondary hover:text-text hover:bg-white/[0.03] rounded-lg transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
               >
                 <ArrowRightLeft size={14} />
                 Switch to Sepolia
@@ -195,7 +195,7 @@ export default function ConnectButton() {
               <button
                 type="button"
                 onClick={handleCopy}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-text-secondary hover:text-text hover:bg-white/[0.03] rounded-lg transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
               >
                 {copied ? (
                   <Check size={14} className="text-primary" />
@@ -212,7 +212,7 @@ export default function ConnectButton() {
                   disconnect();
                   setDropdownOpen(false);
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-danger hover:bg-danger-muted rounded-lg transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition-colors"
               >
                 <LogOut size={14} />
                 Disconnect
@@ -224,7 +224,7 @@ export default function ConnectButton() {
     );
   }
 
-  // ─── State 4: Connected on correct network — show green dot + address ───
+  // State 4: Connected on correct network
   const networkColor = getNetworkColor(chainId);
 
   return (
@@ -233,44 +233,44 @@ export default function ConnectButton() {
         type="button"
         onClick={() => setDropdownOpen(!dropdownOpen)}
         className={cn(
-          "inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm",
-          "bg-white/[0.03] border border-white/[0.06]",
-          "hover:border-white/[0.12] transition-all duration-200"
+          "inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm",
+          "bg-white border border-gray-200 dark:bg-slate-800 dark:border-slate-700",
+          "hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-200"
         )}
       >
         <span className={cn("relative inline-flex h-2 w-2", networkColor)}>
           <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping", networkColor)} />
           <span className={cn("relative inline-flex h-2 w-2 rounded-full", networkColor)} />
         </span>
-        <span className="font-mono text-text">{truncateAddr(address)}</span>
+        <span className="font-mono text-gray-900 dark:text-slate-100">{truncateAddr(address)}</span>
         <span className={cn(
           "px-1.5 py-0.5 rounded text-[10px] font-medium",
-          chainId === 1 ? "bg-primary/10 text-primary" : "bg-secondary/10 text-secondary"
+          chainId === 1 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
         )}>
           {chainName}
         </span>
         <ChevronDown
           size={14}
           className={cn(
-            "text-text-muted transition-transform duration-200",
+            "text-gray-400 transition-transform duration-200",
             dropdownOpen && "rotate-180"
           )}
         />
       </button>
 
       {dropdownOpen && (
-        <div className="absolute right-0 top-full mt-2 w-72 animate-slide-down z-50 bg-surface border border-white/[0.06] rounded-xl shadow-2xl overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-72 animate-slide-down z-50 bg-white border border-gray-200 dark:bg-slate-800 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden">
           {/* Address header */}
-          <div className="p-3 border-b border-white/[0.06]">
-            <p className="text-xs text-text-muted mb-1">Connected Wallet</p>
+          <div className="p-3 border-b border-gray-200 dark:border-slate-700">
+            <p className="text-xs text-gray-400 mb-1">Connected Wallet</p>
             <div className="flex items-center gap-2">
-              <p className="text-xs font-mono text-text-secondary break-all flex-1">
+              <p className="text-xs font-mono text-gray-500 dark:text-slate-400 break-all flex-1">
                 {address}
               </p>
               <button
                 type="button"
                 onClick={handleCopy}
-                className="flex-shrink-0 p-1 rounded text-text-muted hover:text-primary transition-colors"
+                className="flex-shrink-0 p-1 rounded text-gray-400 hover:text-primary transition-colors"
                 title="Copy address"
               >
                 {copied ? (
@@ -283,10 +283,10 @@ export default function ConnectButton() {
           </div>
 
           {/* Network info */}
-          <div className="px-3 py-2.5 border-b border-white/[0.06] flex items-center gap-2">
-            <Globe size={12} className="text-text-muted" />
-            <span className="text-xs text-text-muted">Network:</span>
-            <span className={cn("text-xs font-medium flex items-center gap-1.5", chainId === 1 ? "text-primary" : "text-secondary")}>
+          <div className="px-3 py-2.5 border-b border-gray-200 dark:border-slate-700 flex items-center gap-2">
+            <Globe size={12} className="text-gray-400" />
+            <span className="text-xs text-gray-400">Network:</span>
+            <span className={cn("text-xs font-medium flex items-center gap-1.5", chainId === 1 ? "text-emerald-700" : "text-blue-700")}>
               <span className={cn("inline-flex h-1.5 w-1.5 rounded-full", networkColor)} />
               {chainName}
             </span>
@@ -298,7 +298,7 @@ export default function ConnectButton() {
               href={getExplorerUrl(chainId, address)}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-text-secondary hover:text-text hover:bg-white/[0.03] rounded-lg transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
             >
               <ExternalLink size={14} />
               View on Explorer
@@ -311,7 +311,7 @@ export default function ConnectButton() {
                 disconnect();
                 setDropdownOpen(false);
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-danger hover:bg-danger-muted rounded-lg transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition-colors"
             >
               <LogOut size={14} />
               Disconnect

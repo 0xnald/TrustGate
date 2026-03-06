@@ -16,7 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import GlassCard from "@/components/ui/GlassCard";
+import Card from "@/components/ui/GlassCard";
 import Badge from "@/components/ui/Badge";
 import StatusDot from "@/components/ui/StatusDot";
 
@@ -32,13 +32,13 @@ const MARQUEE_ITEMS = [
 
 function MarqueeStrip() {
   return (
-    <div className="w-full overflow-hidden glass-card-static py-3 my-12">
+    <div className="w-full overflow-hidden card-static py-3 my-12">
       <div className="flex gap-8 animate-marquee" style={{ "--duration": "25s" } as React.CSSProperties}>
         {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map(
           (item, i) => (
             <span
               key={i}
-              className="flex items-center gap-2 text-xs font-mono font-medium text-text-muted whitespace-nowrap tracking-widest uppercase"
+              className="flex items-center gap-2 text-xs font-mono font-medium text-gray-400 dark:text-slate-500 whitespace-nowrap tracking-widest uppercase"
             >
               <span className="h-1 w-1 rounded-full bg-primary" />
               {item}
@@ -65,14 +65,14 @@ function MiniStat({
 }) {
   return (
     <div
-      className="glass-card px-5 py-4 opacity-0 animate-slide-up"
+      className="card px-5 py-4 opacity-0 animate-slide-up"
       style={{ animationDelay: `${delay}s` }}
     >
       <div className="flex items-center gap-3">
         <div className="text-primary">{icon}</div>
         <div>
-          <p className="text-lg font-heading font-bold text-text">{value}</p>
-          <p className="text-[11px] text-text-muted">{label}</p>
+          <p className="text-lg font-heading font-bold text-gray-900 dark:text-slate-100">{value}</p>
+          <p className="text-[11px] text-gray-400 dark:text-slate-500">{label}</p>
         </div>
       </div>
     </div>
@@ -81,12 +81,38 @@ function MiniStat({
 
 /* ───────────────────────── Trust Tier Card ───────────────────────── */
 
+const tierStyles = {
+  primary: {
+    border: "border-l-emerald-500",
+    iconBg: "bg-emerald-50 dark:bg-emerald-900/30",
+    iconText: "text-emerald-600",
+    pillBg: "bg-emerald-50 dark:bg-emerald-900/30",
+    pillBorder: "border-emerald-200 dark:border-emerald-800",
+    pillText: "text-emerald-700 dark:text-emerald-400",
+  },
+  warning: {
+    border: "border-l-amber-500",
+    iconBg: "bg-amber-50 dark:bg-amber-900/30",
+    iconText: "text-amber-600",
+    pillBg: "bg-amber-50 dark:bg-amber-900/30",
+    pillBorder: "border-amber-200 dark:border-amber-800",
+    pillText: "text-amber-700 dark:text-amber-400",
+  },
+  danger: {
+    border: "border-l-red-500",
+    iconBg: "bg-red-50 dark:bg-red-900/30",
+    iconText: "text-red-600",
+    pillBg: "bg-red-50 dark:bg-red-900/30",
+    pillBorder: "border-red-200 dark:border-red-800",
+    pillText: "text-red-700 dark:text-red-400",
+  },
+};
+
 function TrustTierCard({
   title,
   subtitle,
   description,
   icon: Icon,
-  glowClass,
   accentColor,
   flowLabel,
   delay,
@@ -95,41 +121,42 @@ function TrustTierCard({
   subtitle: string;
   description: string;
   icon: typeof ShieldCheck;
-  glowClass: string;
-  accentColor: string;
+  accentColor: "primary" | "warning" | "danger";
   flowLabel: string;
   delay: number;
 }) {
+  const style = tierStyles[accentColor];
+
   return (
     <div
       className={cn(
-        "glass-card p-6 opacity-0 animate-slide-up",
-        glowClass
+        "card p-6 opacity-0 animate-slide-up border-l-4",
+        style.border
       )}
       style={{ animationDelay: `${delay}s` }}
     >
-      <div className={cn("inline-flex p-3 rounded-xl mb-4", `bg-${accentColor}-muted`)}>
-        <Icon size={28} className={`text-${accentColor}`} />
+      <div className={cn("inline-flex p-3 rounded-xl mb-4", style.iconBg)}>
+        <Icon size={28} className={style.iconText} />
       </div>
-      <h3 className="text-lg font-heading font-bold text-text mb-1">
+      <h3 className="text-lg font-heading font-bold text-gray-900 dark:text-slate-100 mb-1">
         {title}
       </h3>
-      <p className={cn("text-xs font-mono font-medium mb-3", `text-${accentColor}`)}>
+      <p className={cn("text-xs font-mono font-medium mb-3", style.iconText)}>
         {subtitle}
       </p>
-      <p className="text-sm text-text-secondary leading-relaxed mb-4">
+      <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed mb-4">
         {description}
       </p>
-      <div className="flex items-center gap-2 text-xs text-text-muted">
-        <span className="px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.06]">
+      <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-slate-500">
+        <span className="px-2 py-0.5 rounded bg-gray-50 border border-gray-200 dark:bg-slate-800/50 dark:border-slate-700">
           Employer
         </span>
-        <ArrowRight size={12} className={`text-${accentColor}`} />
-        <span className={cn("px-2 py-0.5 rounded border", `bg-${accentColor}-muted border-${accentColor}/20 text-${accentColor}`)}>
+        <ArrowRight size={12} className={style.iconText} />
+        <span className={cn("px-2 py-0.5 rounded border", style.pillBg, style.pillBorder, style.pillText)}>
           {flowLabel}
         </span>
-        <ArrowRight size={12} className={`text-${accentColor}`} />
-        <span className="px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.06]">
+        <ArrowRight size={12} className={style.iconText} />
+        <span className="px-2 py-0.5 rounded bg-gray-50 border border-gray-200 dark:bg-slate-800/50 dark:border-slate-700">
           Employee
         </span>
       </div>
@@ -156,23 +183,23 @@ function StepCard({
     <div className="relative flex flex-col items-center text-center">
       {/* Connector line */}
       {!isLast && (
-        <div className="hidden md:block absolute top-8 left-[calc(50%+40px)] w-[calc(100%-80px)] h-px bg-gradient-to-r from-primary/30 to-secondary/30" />
+        <div className="hidden md:block absolute top-8 left-[calc(50%+40px)] w-[calc(100%-80px)] h-px bg-gray-200 dark:bg-slate-700" />
       )}
 
       {/* Number circle */}
       <div className="relative mb-4">
-        <div className="w-16 h-16 rounded-2xl glass-card-static flex items-center justify-center">
+        <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 dark:bg-blue-900/30 dark:border-blue-800 flex items-center justify-center">
           <Icon size={24} className="text-primary" />
         </div>
-        <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-surface border border-primary/30 flex items-center justify-center text-[10px] font-mono font-bold text-primary">
+        <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white border border-blue-200 dark:bg-slate-800 dark:border-blue-800 flex items-center justify-center text-[10px] font-mono font-bold text-primary shadow-sm">
           {number}
         </span>
       </div>
 
-      <h3 className="text-sm font-heading font-bold text-text mb-1.5">
+      <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-100 mb-1.5">
         {title}
       </h3>
-      <p className="text-xs text-text-secondary leading-relaxed max-w-[200px]">
+      <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed max-w-[200px]">
         {description}
       </p>
     </div>
@@ -183,7 +210,7 @@ function StepCard({
 
 function TechPill({ label }: { label: string }) {
   return (
-    <span className="px-4 py-2 rounded-full glass-card-static text-xs font-medium text-text-secondary hover:text-text hover:border-white/[0.12] transition-all duration-200 cursor-default">
+    <span className="px-4 py-2 rounded-full bg-gray-100 border border-gray-200 text-xs font-medium text-gray-600 hover:text-gray-900 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300 dark:hover:text-slate-100 transition-all duration-200 cursor-default">
       {label}
     </span>
   );
@@ -195,26 +222,26 @@ export default function HomePage() {
   return (
     <div className="relative overflow-hidden">
       {/* ─── HERO SECTION ─── */}
-      <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 gradient-mesh dot-pattern">
+      <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-blue-50/50 to-white dark:from-slate-900 dark:to-[#0F172A]">
         <div className="max-w-5xl mx-auto text-center relative z-10">
           {/* Floating badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card-static text-xs font-medium text-primary mb-8 animate-fade-in">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400 mb-8 animate-fade-in">
             <LockIcon size={12} />
             ERC-7984 Confidential Tokens
           </div>
 
           {/* Main heading */}
           <h1 className="font-heading font-extrabold tracking-tight leading-[1.1] animate-fade-in text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl">
-            <span className="text-text">Payroll,</span>
+            <span className="text-gray-900 dark:text-slate-100">Payroll,</span>
             <br />
             <span className="text-primary">Encrypted.</span>
             <br className="sm:hidden" />
-            <span className="text-text"> Trust, </span>
-            <span className="text-secondary">Verified.</span>
+            <span className="text-gray-900 dark:text-slate-100"> Trust, </span>
+            <span className="text-emerald-600">Verified.</span>
           </h1>
 
           {/* Subtitle */}
-          <p className="mt-6 max-w-2xl mx-auto text-base sm:text-lg text-text-secondary leading-relaxed opacity-0 animate-slide-up" style={{ animationDelay: "0.2s" }}>
+          <p className="mt-6 max-w-2xl mx-auto text-base sm:text-lg text-gray-500 dark:text-slate-400 leading-relaxed opacity-0 animate-slide-up" style={{ animationDelay: "0.2s" }}>
             Pay your team with confidential stablecoins. Trust scores gate every
             payment flow. Salaries stay encrypted — only employees see their own.
           </p>
@@ -227,9 +254,9 @@ export default function HomePage() {
             <Link
               href="/employer"
               className={cn(
-                "inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold",
-                "bg-primary text-black hover:bg-primary-hover active:scale-[0.98]",
-                "transition-all duration-200 shadow-lg shadow-primary/20"
+                "inline-flex items-center gap-2 px-7 py-3.5 rounded-lg text-sm font-semibold",
+                "bg-primary text-white hover:bg-primary-hover active:scale-[0.98]",
+                "transition-all duration-200"
               )}
             >
               Launch Employer Dashboard
@@ -238,8 +265,9 @@ export default function HomePage() {
             <Link
               href="/employee"
               className={cn(
-                "inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-medium",
-                "glass-card-static text-text hover:border-white/[0.12]",
+                "inline-flex items-center gap-2 px-7 py-3.5 rounded-lg text-sm font-medium",
+                "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50",
+                "dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50",
                 "transition-all duration-200"
               )}
             >
@@ -284,10 +312,10 @@ export default function HomePage() {
               <Shield size={12} />
               Payment Routing
             </Badge>
-            <h2 className="text-3xl sm:text-4xl font-heading font-bold text-text">
+            <h2 className="text-3xl sm:text-4xl font-heading font-bold text-gray-900 dark:text-slate-100">
               Trust-Gated Payment Flows
             </h2>
-            <p className="mt-3 text-sm text-text-secondary max-w-lg mx-auto">
+            <p className="mt-3 text-sm text-gray-500 dark:text-slate-400 max-w-lg mx-auto">
               Smart contracts make encrypted decisions on encrypted data.
               Payment routing happens entirely within FHE — nobody learns the
               trust scores.
@@ -300,7 +328,6 @@ export default function HomePage() {
               subtitle="HIGH TRUST (75-100)"
               description="Verified employees receive encrypted cUSDC immediately. No delays, no friction."
               icon={ShieldCheck}
-              glowClass="glow-green"
               accentColor="primary"
               flowLabel="Instant"
               delay={0.1}
@@ -310,7 +337,6 @@ export default function HomePage() {
               subtitle="MEDIUM TRUST (40-74)"
               description="Building trust takes time. Payments held for 24 hours before release."
               icon={Clock}
-              glowClass="glow-yellow"
               accentColor="warning"
               flowLabel="24h Hold"
               delay={0.2}
@@ -320,7 +346,6 @@ export default function HomePage() {
               subtitle="LOW TRUST (0-39)"
               description="New relationships start carefully. Funds held in escrow until milestones are met."
               icon={Lock}
-              glowClass="glow-red"
               accentColor="danger"
               flowLabel="Escrow"
               delay={0.3}
@@ -330,14 +355,14 @@ export default function HomePage() {
       </section>
 
       {/* ─── HOW IT WORKS SECTION ─── */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 dot-pattern">
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gray-50/50 dark:bg-slate-800/30">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
-            <Badge variant="secondary" className="mb-4">
+            <Badge variant="primary" className="mb-4">
               <Zap size={12} />
               Workflow
             </Badge>
-            <h2 className="text-3xl sm:text-4xl font-heading font-bold text-text">
+            <h2 className="text-3xl sm:text-4xl font-heading font-bold text-gray-900 dark:text-slate-100">
               How It Works
             </h2>
           </div>
@@ -375,7 +400,7 @@ export default function HomePage() {
       {/* ─── TECH STACK SECTION ─── */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto text-center">
-          <p className="text-xs text-text-muted uppercase tracking-widest mb-6">
+          <p className="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-6">
             Built with the latest in confidential computing
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -392,20 +417,20 @@ export default function HomePage() {
       {/* ─── BOTTOM CTA SECTION ─── */}
       <section className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
-          <GlassCard className="p-10 text-center" variant="primary">
-            <h2 className="text-2xl sm:text-3xl font-heading font-bold text-text mb-3">
+          <Card className="p-10 text-center border-l-4 border-l-primary" hover={false}>
+            <h2 className="text-2xl sm:text-3xl font-heading font-bold text-gray-900 dark:text-slate-100 mb-3">
               Ready to run confidential payroll?
             </h2>
-            <p className="text-sm text-text-secondary mb-8">
+            <p className="text-sm text-gray-500 dark:text-slate-400 mb-8">
               Deploy trust-gated payments with encrypted salaries today.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/employer"
                 className={cn(
-                  "inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold",
-                  "bg-primary text-black hover:bg-primary-hover active:scale-[0.98]",
-                  "transition-all duration-200 shadow-lg shadow-primary/20"
+                  "inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold",
+                  "bg-primary text-white hover:bg-primary-hover active:scale-[0.98]",
+                  "transition-all duration-200"
                 )}
               >
                 <Users size={16} />
@@ -414,19 +439,20 @@ export default function HomePage() {
               <Link
                 href="/employee"
                 className={cn(
-                  "inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium",
-                  "bg-white/[0.05] border border-white/[0.08] text-text",
-                  "hover:border-white/[0.15] transition-all duration-200"
+                  "inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium",
+                  "bg-white border border-gray-300 text-gray-700",
+                  "hover:bg-gray-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50",
+                  "transition-all duration-200"
                 )}
               >
                 <Wallet size={16} />
                 Employee Portal
               </Link>
             </div>
-            <p className="mt-6 text-xs text-text-muted">
+            <p className="mt-6 text-xs text-gray-400 dark:text-slate-500">
               Deployed on Ethereum Sepolia Testnet
             </p>
-          </GlassCard>
+          </Card>
         </div>
       </section>
     </div>

@@ -107,7 +107,7 @@ export default function PaymentHistory() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-heading font-bold text-text">
+        <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-100">
           Payment History
         </h3>
         <div className="flex items-center gap-2">
@@ -133,11 +133,11 @@ export default function PaymentHistory() {
           {MOCK_EMPLOYEE_PAYMENTS.map((p) => (
             <div
               key={p.id}
-              className="glass-card-static p-4 flex items-center justify-between"
+              className="card-static p-4 flex items-center justify-between"
             >
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono text-text-secondary">
+                  <span className="text-sm font-mono text-gray-500 dark:text-slate-400">
                     Payment #{p.id}
                   </span>
                   <Badge variant={statusVariant(p.status)} size="sm">
@@ -147,7 +147,7 @@ export default function PaymentHistory() {
                     {p.type}
                   </Badge>
                 </div>
-                <p className="text-xs text-text-muted mt-1">
+                <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
                   {new Date(p.date).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "short",
@@ -156,7 +156,7 @@ export default function PaymentHistory() {
                 </p>
               </div>
               <div className="text-right">
-                <span className="inline-flex items-center gap-1 text-sm font-mono text-text-muted">
+                <span className="inline-flex items-center gap-1 text-sm font-mono text-gray-400 dark:text-slate-500">
                   <Lock size={10} />
                   Encrypted
                 </span>
@@ -165,12 +165,12 @@ export default function PaymentHistory() {
           ))}
         </div>
       ) : payments.length === 0 ? (
-        <div className="glass-card-static p-12 text-center">
-          <FileText size={40} className="mx-auto mb-3 text-text-muted" />
-          <p className="text-sm font-medium text-text mb-1">
+        <div className="card-static p-12 text-center">
+          <FileText size={40} className="mx-auto mb-3 text-gray-300 dark:text-slate-600" />
+          <p className="text-sm font-medium text-gray-900 dark:text-slate-100 mb-1">
             No payments yet
           </p>
-          <p className="text-xs text-text-muted">
+          <p className="text-xs text-gray-400 dark:text-slate-500">
             Your payment records will appear here after payroll execution
           </p>
         </div>
@@ -179,30 +179,30 @@ export default function PaymentHistory() {
           {payments.map((p) => (
             <div
               key={p.id}
-              className="glass-card-static p-4 flex items-center justify-between"
+              className="card-static p-4 flex items-center justify-between"
             >
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono text-text-secondary">
+                  <span className="text-sm font-mono text-gray-500 dark:text-slate-400">
                     Payment #{p.id}
                   </span>
                   <Badge variant={statusVariant(p.status)} size="sm">
                     {statusLabel(p.status)}
                   </Badge>
                 </div>
-                <p className="text-xs text-text-muted mt-1">
+                <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
                   Created {formatTimestamp(p.createdAt)}
                   {p.releaseTime > 0n &&
                     ` \u2022 Releases ${formatTimestamp(p.releaseTime)}`}
                 </p>
                 {p.milestone && (
-                  <p className="text-xs text-text-muted mt-0.5">
+                  <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
                     {p.milestone}
                   </p>
                 )}
               </div>
               <div className="text-right">
-                <span className="inline-flex items-center gap-1 text-sm font-mono text-text-muted">
+                <span className="inline-flex items-center gap-1 text-sm font-mono text-gray-400 dark:text-slate-500">
                   <Lock size={10} />
                   Encrypted
                 </span>

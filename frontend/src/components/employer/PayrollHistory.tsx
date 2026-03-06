@@ -109,7 +109,7 @@ export default function PayrollHistory() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-heading font-bold text-text">
+        <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-100">
           Payment History
         </h3>
         <div className="flex items-center gap-2">
@@ -133,21 +133,21 @@ export default function PayrollHistory() {
       {displayMock ? (
         <MockPaymentTable data={MOCK_PAYMENTS} statusVariant={statusVariant} />
       ) : payments.length === 0 ? (
-        <div className="glass-card-static p-12 text-center">
-          <FileText size={40} className="mx-auto mb-3 text-text-muted" />
-          <p className="text-sm font-medium text-text mb-1">
+        <div className="card-static p-12 text-center">
+          <FileText size={40} className="mx-auto mb-3 text-gray-300 dark:text-slate-600" />
+          <p className="text-sm font-medium text-gray-900 dark:text-slate-100 mb-1">
             No payments recorded yet
           </p>
-          <p className="text-xs text-text-muted">
+          <p className="text-xs text-gray-400 dark:text-slate-500">
             Execute a payroll to see payment records here
           </p>
         </div>
       ) : (
-        <div className="glass-card-static overflow-hidden">
+        <div className="card-static overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-text-muted border-b border-white/[0.06]">
+                <tr className="text-left text-gray-400 dark:text-slate-500 border-b border-gray-200 dark:border-slate-700">
                   <th className="px-4 py-3 font-medium text-xs">ID</th>
                   <th className="px-4 py-3 font-medium text-xs">Employee</th>
                   <th className="px-4 py-3 font-medium text-xs">Status</th>
@@ -155,11 +155,11 @@ export default function PayrollHistory() {
                   <th className="px-4 py-3 font-medium text-xs">Release</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.03]">
+              <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                 {payments.map((p) => (
                   <tr
                     key={p.id}
-                    className="text-text-secondary hover:bg-white/[0.02] transition-colors"
+                    className="text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
                   >
                     <td className="px-4 py-3 font-mono text-xs">#{p.id}</td>
                     <td className="px-4 py-3">
@@ -170,10 +170,10 @@ export default function PayrollHistory() {
                         {statusLabel(p.status)}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-xs text-text-muted">
+                    <td className="px-4 py-3 text-xs text-gray-400 dark:text-slate-500">
                       {formatTimestamp(p.createdAt)}
                     </td>
-                    <td className="px-4 py-3 text-xs text-text-muted">
+                    <td className="px-4 py-3 text-xs text-gray-400 dark:text-slate-500">
                       {p.releaseTime > 0n
                         ? formatTimestamp(p.releaseTime)
                         : "\u2014"}
@@ -189,7 +189,7 @@ export default function PayrollHistory() {
   );
 }
 
-/* ─── Mock table ─── */
+/* Mock table */
 
 function MockPaymentTable({
   data,
@@ -199,11 +199,11 @@ function MockPaymentTable({
   statusVariant: (s: string) => "primary" | "warning" | "danger" | "secondary" | "default";
 }) {
   return (
-    <div className="glass-card-static overflow-hidden">
+    <div className="card-static overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-text-muted border-b border-white/[0.06]">
+            <tr className="text-left text-gray-400 dark:text-slate-500 border-b border-gray-200 dark:border-slate-700">
               <th className="px-4 py-3 font-medium text-xs">Date</th>
               <th className="px-4 py-3 font-medium text-xs">Employees</th>
               <th className="px-4 py-3 font-medium text-xs">Status</th>
@@ -211,11 +211,11 @@ function MockPaymentTable({
               <th className="px-4 py-3 font-medium text-xs">Total</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.03]">
+          <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
             {data.map((p) => (
               <tr
                 key={p.id}
-                className="text-text-secondary hover:bg-white/[0.02] transition-colors"
+                className="text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
               >
                 <td className="px-4 py-3 text-xs">
                   {new Date(p.date).toLocaleDateString("en-US", {
@@ -236,7 +236,7 @@ function MockPaymentTable({
                     {p.type}
                   </Badge>
                 </td>
-                <td className="px-4 py-3 text-xs font-mono text-text-muted">
+                <td className="px-4 py-3 text-xs font-mono text-gray-400 dark:text-slate-500">
                   Encrypted
                 </td>
               </tr>

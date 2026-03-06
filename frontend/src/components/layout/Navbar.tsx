@@ -5,12 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Shield, Menu, X } from "lucide-react";
 import ConnectButton from "@/components/wallet/ConnectButton";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/employer", label: "Employer" },
   { href: "/employee", label: "Employee" },
+  { href: "/docs", label: "Docs" },
 ];
 
 export default function Navbar() {
@@ -18,23 +20,20 @@ export default function Navbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="glass-nav sticky top-0 z-50">
+    <nav className="nav-bar sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
-            <div className="relative">
-              <Shield
-                size={24}
-                className="text-primary transition-colors group-hover:text-primary-hover"
-              />
-              <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
+            <Shield
+              size={24}
+              className="text-primary transition-colors group-hover:text-primary-hover"
+            />
             <div className="flex flex-col">
-              <span className="text-base font-heading font-bold text-text leading-tight">
+              <span className="text-base font-heading font-bold text-gray-900 dark:text-slate-100 leading-tight">
                 Trusted PayGram
               </span>
-              <span className="text-[9px] text-text-muted leading-tight tracking-wider uppercase">
+              <span className="text-[9px] text-gray-400 dark:text-slate-500 leading-tight tracking-wider uppercase">
                 Powered by Zama Protocol
               </span>
             </div>
@@ -51,8 +50,8 @@ export default function Navbar() {
                   className={cn(
                     "relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
                     isActive
-                      ? "text-text"
-                      : "text-text-muted hover:text-text-secondary"
+                      ? "text-gray-900 dark:text-slate-100"
+                      : "text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
                   )}
                 >
                   {link.label}
@@ -66,6 +65,7 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <div className="hidden md:block">
               <ConnectButton />
             </div>
@@ -74,7 +74,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setMenuOpen(!menuOpen)}
-              className="md:hidden p-2 rounded-lg text-text-muted hover:text-text hover:bg-white/5 transition-colors"
+              className="md:hidden p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700 transition-colors"
               aria-label="Toggle menu"
             >
               {menuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -84,7 +84,7 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden pb-4 border-t border-white/[0.06] mt-2 pt-4 space-y-1 animate-slide-down">
+          <div className="md:hidden pb-4 border-t border-gray-200 dark:border-slate-700 mt-2 pt-4 space-y-1 animate-slide-down">
             {NAV_LINKS.map((link) => {
               const isActive = pathname === link.href;
               return (
@@ -95,8 +95,8 @@ export default function Navbar() {
                   className={cn(
                     "block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                     isActive
-                      ? "text-text bg-white/[0.05]"
-                      : "text-text-muted hover:text-text hover:bg-white/[0.03]"
+                      ? "text-gray-900 bg-gray-50 dark:text-slate-100 dark:bg-slate-800/50"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700/50"
                   )}
                 >
                   {link.label}

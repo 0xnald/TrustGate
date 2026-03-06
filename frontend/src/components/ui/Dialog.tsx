@@ -48,7 +48,7 @@ export default function Dialog({
       {/* Backdrop */}
       <div
         ref={overlayRef}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
 
@@ -59,7 +59,7 @@ export default function Dialog({
         aria-labelledby="dialog-title"
         className={cn(
           "relative z-10 w-full max-w-lg animate-slide-up",
-          "bg-surface border border-white/[0.06] rounded-2xl shadow-2xl",
+          "bg-white border border-gray-200 rounded-2xl shadow-xl dark:bg-slate-800 dark:border-slate-700",
           className
         )}
       >
@@ -68,18 +68,18 @@ export default function Dialog({
           <div>
             <h2
               id="dialog-title"
-              className="text-lg font-heading font-bold text-text"
+              className="text-lg font-heading font-bold text-gray-900 dark:text-slate-100"
             >
               {title}
             </h2>
             {description && (
-              <p className="mt-1 text-sm text-text-secondary">{description}</p>
+              <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{description}</p>
             )}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-white/5 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-slate-700 transition-colors"
           >
             <X size={18} />
           </button>

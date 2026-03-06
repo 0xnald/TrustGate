@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./src/app/**/*.{ts,tsx}",
     "./src/components/**/*.{ts,tsx}",
@@ -10,48 +11,51 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#0a0a0f",
+        background: "#FAFBFC",
         surface: {
-          DEFAULT: "#12121a",
-          hover: "#1a1a25",
+          DEFAULT: "#FFFFFF",
+          hover: "#F9FAFB",
         },
         border: {
-          DEFAULT: "rgba(255, 255, 255, 0.06)",
-          hover: "rgba(255, 255, 255, 0.12)",
+          DEFAULT: "#E5E7EB",
+          hover: "#D1D5DB",
         },
         primary: {
-          DEFAULT: "#00e5a0",
-          hover: "#00cc8e",
-          muted: "rgba(0, 229, 160, 0.1)",
+          DEFAULT: "#2563EB",
+          hover: "#1D4ED8",
+          muted: "rgba(37, 99, 235, 0.08)",
         },
         secondary: {
-          DEFAULT: "#6366f1",
-          muted: "rgba(99, 102, 241, 0.1)",
+          DEFAULT: "#6B7280",
+          muted: "rgba(107, 114, 128, 0.08)",
         },
         warning: {
-          DEFAULT: "#f59e0b",
-          muted: "rgba(245, 158, 11, 0.1)",
+          DEFAULT: "#F59E0B",
+          muted: "rgba(245, 158, 11, 0.08)",
         },
         danger: {
-          DEFAULT: "#ef4444",
-          muted: "rgba(239, 68, 68, 0.1)",
+          DEFAULT: "#EF4444",
+          muted: "rgba(239, 68, 68, 0.08)",
+        },
+        success: {
+          DEFAULT: "#10B981",
+          muted: "rgba(16, 185, 129, 0.08)",
         },
         text: {
-          DEFAULT: "#f0f0f5",
-          secondary: "#6b7280",
-          muted: "#4b5563",
+          DEFAULT: "#111827",
+          secondary: "#6B7280",
+          muted: "#9CA3AF",
         },
       },
       fontFamily: {
-        heading: ["var(--font-jakarta)", "sans-serif"],
-        body: ["var(--font-inter)", "sans-serif"],
+        heading: ["var(--font-dm-sans)", "sans-serif"],
+        body: ["var(--font-dm-sans)", "sans-serif"],
         mono: ["var(--font-jetbrains)", "monospace"],
       },
       animation: {
         "fade-in": "fade-in 0.6s ease-out forwards",
         "slide-up": "slide-up 0.6s ease-out forwards",
         "slide-down": "slide-down 0.4s ease-out forwards",
-        "glow-pulse": "glow-pulse 2s ease-in-out infinite",
         float: "float 6s ease-in-out infinite",
         marquee: "marquee var(--duration, 30s) infinite linear",
       },
@@ -67,10 +71,6 @@ const config: Config = {
         "slide-down": {
           from: { opacity: "0", transform: "translateY(-10px)" },
           to: { opacity: "1", transform: "translateY(0)" },
-        },
-        "glow-pulse": {
-          "0%, 100%": { boxShadow: "0 0 20px rgba(0, 229, 160, 0.1)" },
-          "50%": { boxShadow: "0 0 40px rgba(0, 229, 160, 0.2)" },
         },
         float: {
           "0%, 100%": { transform: "translateY(0px)" },
