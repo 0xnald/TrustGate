@@ -413,19 +413,19 @@ export default function DocsPage() {
               <span className="text-xs font-medium text-gray-500 dark:text-slate-400 w-28 shrink-0">
                 TrustScoring
               </span>
-              <CodeBlock>0xb239eFe265df2eAD499AeF2d5ECD1b2924da9Fe9</CodeBlock>
+              <CodeBlock>0x1DacB05d09435b2d9dBf56761487177dB893d0f5</CodeBlock>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
               <span className="text-xs font-medium text-gray-500 dark:text-slate-400 w-28 shrink-0">
                 PayGramToken
               </span>
-              <CodeBlock>0xC97C848E7021AdFC36269ddc5e39E54939E81704</CodeBlock>
+              <CodeBlock>0xA8b4Fa823A2c0551F95bC61a8CbeE0fcD9c0a896</CodeBlock>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
               <span className="text-xs font-medium text-gray-500 dark:text-slate-400 w-28 shrink-0">
                 PayGramCore
               </span>
-              <CodeBlock>0x331048736e7dC599E46187CaBa00dcC46952a7d7</CodeBlock>
+              <CodeBlock>0x2b8037E8480DB5B4DFb19EA332Db667A6c6cC0Dc</CodeBlock>
             </div>
           </div>
 

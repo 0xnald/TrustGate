@@ -3,7 +3,6 @@ import { Shield } from "lucide-react";
 export default function Footer() {
   return (
     <footer className="bg-gray-900">
-      {/* Top border */}
       <div className="h-px bg-gray-800" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -17,15 +16,14 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed max-w-xs">
-              Confidential payroll powered by Zama Protocol. Encrypted salaries,
-              trust-gated payment flows.
+              Confidential trust-gated payroll on Zama FHEVM.
             </p>
           </div>
 
           {/* Right -- Links */}
           <div className="flex items-center gap-6">
             <a
-              href="https://github.com"
+              href="https://github.com/rudazy/Trusted-paygram"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-gray-400 hover:text-white transition-colors"
@@ -39,14 +37,6 @@ export default function Footer() {
               className="text-sm text-gray-400 hover:text-white transition-colors"
             >
               Zama Docs
-            </a>
-            <a
-              href="https://eips.ethereum.org/EIPS/eip-7984"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-gray-400 hover:text-white transition-colors"
-            >
-              ERC-7984
             </a>
           </div>
         </div>

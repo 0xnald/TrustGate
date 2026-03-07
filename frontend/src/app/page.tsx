@@ -206,16 +206,6 @@ function StepCard({
   );
 }
 
-/* ───────────────────────── Tech Badge ───────────────────────── */
-
-function TechPill({ label }: { label: string }) {
-  return (
-    <span className="px-4 py-2 rounded-full bg-gray-100 border border-gray-200 text-xs font-medium text-gray-600 hover:text-gray-900 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300 dark:hover:text-slate-100 transition-all duration-200 cursor-default">
-      {label}
-    </span>
-  );
-}
-
 /* ═══════════════════════ MAIN PAGE ═══════════════════════ */
 
 export default function HomePage() {
@@ -224,12 +214,6 @@ export default function HomePage() {
       {/* ─── HERO SECTION ─── */}
       <section className="relative min-h-[90vh] flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-blue-50/50 to-white dark:from-slate-900 dark:to-[#0F172A]">
         <div className="max-w-5xl mx-auto text-center relative z-10">
-          {/* Floating badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400 mb-8 animate-fade-in">
-            <LockIcon size={12} />
-            ERC-7984 Confidential Tokens
-          </div>
-
           {/* Main heading */}
           <h1 className="font-heading font-extrabold tracking-tight leading-[1.1] animate-fade-in text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl">
             <span className="text-gray-900 dark:text-slate-100">Payroll,</span>
@@ -393,23 +377,6 @@ export default function HomePage() {
               icon={Wallet}
               isLast
             />
-          </div>
-        </div>
-      </section>
-
-      {/* ─── TECH STACK SECTION ─── */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-3xl mx-auto text-center">
-          <p className="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-6">
-            Built with the latest in confidential computing
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <TechPill label="Zama Protocol" />
-            <TechPill label="Solidity" />
-            <TechPill label="ERC-7984" />
-            <TechPill label="FHE" />
-            <TechPill label="EigenTrust" />
-            <TechPill label="Next.js" />
           </div>
         </div>
       </section>
