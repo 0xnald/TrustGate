@@ -259,7 +259,7 @@ export default function HomePage() {
                 "transition-all duration-200"
               )}
             >
-              Launch Employer Dashboard
+              Try It Now
               <ArrowRight size={16} />
             </Link>
             <Link
@@ -414,15 +414,73 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ─── TRY IT YOURSELF SECTION ─── */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-14">
+            <Badge variant="primary" className="mb-4">
+              <Users size={12} />
+              Open Demo
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-heading font-bold text-gray-900 dark:text-slate-100">
+              Try It Yourself
+            </h2>
+            <p className="mt-3 text-sm text-gray-500 dark:text-slate-400 max-w-lg mx-auto">
+              No permissions needed. Anyone can register as an employer and run
+              the full payroll flow on Sepolia testnet.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="card p-6 text-center">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
+                <span className="text-lg font-heading font-bold text-primary">1</span>
+              </div>
+              <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-100 mb-2">
+                Register
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
+                Connect your wallet and register as an employer with a single
+                transaction.
+              </p>
+            </div>
+            <div className="card p-6 text-center">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
+                <span className="text-lg font-heading font-bold text-primary">2</span>
+              </div>
+              <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-100 mb-2">
+                Get Test Tokens
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
+                Mint 10,000 cPAY test tokens from the built-in faucet to fund
+                your payroll.
+              </p>
+            </div>
+            <div className="card p-6 text-center">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
+                <span className="text-lg font-heading font-bold text-primary">3</span>
+              </div>
+              <h3 className="text-sm font-heading font-bold text-gray-900 dark:text-slate-100 mb-2">
+                Run Payroll
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
+                Add employees, set trust scores, and execute encrypted payroll --
+                all on-chain.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ─── BOTTOM CTA SECTION ─── */}
       <section className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <Card className="p-10 text-center border-l-4 border-l-primary" hover={false}>
             <h2 className="text-2xl sm:text-3xl font-heading font-bold text-gray-900 dark:text-slate-100 mb-3">
-              Ready to run confidential payroll?
+              Ready to try confidential payroll?
             </h2>
             <p className="text-sm text-gray-500 dark:text-slate-400 mb-8">
-              Deploy trust-gated payments with encrypted salaries today.
+              Register as employer, get test tokens, and run trust-gated payroll in minutes.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link

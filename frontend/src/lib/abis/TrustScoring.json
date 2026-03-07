@@ -26,6 +26,11 @@
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "NotAuthorizedScorer",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -122,6 +127,19 @@
       }
     ],
     "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newCore",
+        "type": "address"
+      }
+    ],
+    "name": "PayGramCoreUpdated",
     "type": "event"
   },
   {
@@ -488,6 +506,19 @@
   },
   {
     "inputs": [],
+    "name": "payGramCore",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "pendingOwner",
     "outputs": [
       {
@@ -533,6 +564,19 @@
       }
     ],
     "name": "setOracle",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_core",
+        "type": "address"
+      }
+    ],
+    "name": "setPayGramCore",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

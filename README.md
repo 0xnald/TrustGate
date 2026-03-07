@@ -154,13 +154,13 @@ See [docs/SETUP.md](docs/SETUP.md) for detailed configuration.
 | **PayGramToken** | `0x41fa55cefd625e50fa1ae08baea87ac5c8be0ad7` | [View](https://etherscan.io/address/0x41fa55cefd625e50fa1ae08baea87ac5c8be0ad7#code) |
 | **PayGramCore** | `0xDC41FF140129846f7a2e63A5CcE73e9d767CB4e1` | [View](https://etherscan.io/address/0xDC41FF140129846f7a2e63A5CcE73e9d767CB4e1#code) |
 
-> **Sepolia Testnet** &mdash; deployed 2026-02-28
+> **Sepolia Testnet** &mdash; deployed 2026-03-07 (Multi-Employer v2)
 
 | Contract | Address | Etherscan |
 |:---------|:--------|:----------|
-| **TrustScoring** | `0xb239eFe265df2eAD499AeF2d5ECD1b2924da9Fe9` | [View](https://sepolia.etherscan.io/address/0xb239eFe265df2eAD499AeF2d5ECD1b2924da9Fe9#code) |
-| **PayGramToken** | `0xC97C848E7021AdFC36269ddc5e39E54939E81704` | [View](https://sepolia.etherscan.io/address/0xC97C848E7021AdFC36269ddc5e39E54939E81704#code) |
-| **PayGramCore** | `0x331048736e7dC599E46187CaBa00dcC46952a7d7` | [View](https://sepolia.etherscan.io/address/0x331048736e7dC599E46187CaBa00dcC46952a7d7#code) |
+| **TrustScoring** | `0x1DacB05d09435b2d9dBf56761487177dB893d0f5` | [View](https://sepolia.etherscan.io/address/0x1DacB05d09435b2d9dBf56761487177dB893d0f5#code) |
+| **PayGramToken** | `0xA8b4Fa823A2c0551F95bC61a8CbeE0fcD9c0a896` | [View](https://sepolia.etherscan.io/address/0xA8b4Fa823A2c0551F95bC61a8CbeE0fcD9c0a896#code) |
+| **PayGramCore** | `0x2b8037E8480DB5B4DFb19EA332Db667A6c6cC0Dc` | [View](https://sepolia.etherscan.io/address/0x2b8037E8480DB5B4DFb19EA332Db667A6c6cC0Dc#code) |
 
 All contracts are verified with source code on Etherscan.
 
@@ -234,9 +234,9 @@ scripts/
   deploy-sepolia.ts         Deployment script (ethers-based, single-key)
 
 test/
-  TrustScoring.test.ts      33 passing, 35 FHE-pending
-  PayGramCore.test.ts        45 passing, 38 FHE-pending
-  integration.test.ts       34 passing, 25 FHE-pending
+  TrustScoring.test.ts      46 passing, 35 FHE-pending
+  PayGramCore.test.ts        52 passing, 38 FHE-pending
+  integration.test.ts       41 passing, 30 FHE-pending
 
 docs/
   ARCHITECTURE.md           System design and data flows
@@ -287,13 +287,13 @@ Tests are structured with a `try/catch + this.skip()` pattern: non-FHE logic run
 - [x] TrustScoring contract with encrypted tier evaluation
 - [x] PayGramCore payroll engine with oblivious routing
 - [x] PayGramToken (ERC-7984) with supply cap, pause, observer access
-- [x] Full test suite (112 tests)
+- [x] Full test suite (119 passing, 107 FHE-pending)
 - [x] Deployment to Sepolia with Etherscan verification
 - [x] Frontend: employer dashboard, employee portal, wallet connection
 - [x] Network switching UX (Sepolia auto-switch, wrong network banner)
 - [x] Live FHE encryption in frontend via fhevmjs
 - [ ] Oracle integration for real EigenTrust score submission
-- [ ] Multi-employer support with role-based access
+- [x] Multi-employer support (any wallet can register, manage employees independently)
 - [ ] Payment release automation (keeper-compatible delayed releases)
 - [ ] Mainnet deployment
 

@@ -38,12 +38,17 @@ export default function PaymentHistory() {
       for (const id of ids) {
         try {
           const p = await payGramCore.getPendingPayment(id);
+          // getPendingPayment returns (employee, employer, status, createdAt, releaseTime, milestone)
+          const status = p[2] ?? p.status;
+          const createdAt = p[3] ?? p.createdAt;
+          const releaseTime = p[4] ?? p.releaseTime;
+          const milestone = p[5] ?? p.milestone;
           records.push({
             id: Number(id),
-            status: Number(p.status),
-            createdAt: p.createdAt,
-            releaseTime: p.releaseTime,
-            milestone: p.milestone,
+            status: Number(status),
+            createdAt,
+            releaseTime,
+            milestone,
           });
         } catch {
           // Skip invalid

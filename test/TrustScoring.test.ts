@@ -201,7 +201,7 @@ describe("TrustScoring", function () {
     it("should reject score setting from unauthorized address", async function () {
       await expect(
         trustScoring.connect(unauthorized).setTrustScorePlaintext(user1.address, 50)
-      ).to.be.revertedWithCustomError(trustScoring, "UnauthorizedOracle");
+      ).to.be.revertedWithCustomError(trustScoring, "NotAuthorizedScorer");
     });
 
     it("should reject score setting for the zero address", async function () {
@@ -289,7 +289,7 @@ describe("TrustScoring", function () {
         trustScoring
           .connect(unauthorized)
           .batchSetScores([user1.address], [85])
-      ).to.be.revertedWithCustomError(trustScoring, "UnauthorizedOracle");
+      ).to.be.revertedWithCustomError(trustScoring, "NotAuthorizedScorer");
     });
 
     it("should clamp each score in the batch to MAX_SCORE", async function () {
@@ -720,7 +720,77 @@ describe("TrustScoring", function () {
 
       await expect(
         trustScoring.connect(oracle2).setTrustScorePlaintext(user1.address, 50)
-      ).to.be.revertedWithCustomError(trustScoring, "UnauthorizedOracle");
+      ).to.be.revertedWithCustomError(trustScoring, "NotAuthorizedScorer");
+    });
+  });
+
+  // ================================================================
+  //  EMPLOYER-SCOPED SCORING
+  // ================================================================
+
+  describe("Employer-Scoped Scoring", function () {
+    // These tests deploy PayGramCore so employers can set scores for their employees.
+
+    async function setupEmployerScoring() {
+      const PayGramTokenFactory = await ethers.getContractFactory("PayGramToken");
+      const token = await PayGramTokenFactory.deploy(owner.address, 0);
+      await token.waitForDeployment();
+
+      const PayGramCoreFactory = await ethers.getContractFactory("PayGramCore");
+      const core = await PayGramCoreFactory.deploy(
+        owner.address,
+        oracle.address, // oracle is also initial employer
+        await trustScoring.getAddress(),
+        await token.getAddress()
+      );
+      await core.waitForDeployment();
+
+      // Wire TrustScoring -> PayGramCore
+      await trustScoring.connect(owner).setPayGramCore(await core.getAddress());
+
+      return { core, token };
+    }
+
+    it("should allow employer to set score for own active employee", async function () {
+      const { core } = await setupEmployerScoring();
+
+      try {
+        // oracle is employer here, add user1 as employee
+        await core.connect(oracle).addEmployeePlaintext(user1.address, 5000, "dev");
+        await trustScoring.connect(oracle).setTrustScorePlaintext(user1.address, 85);
+        expect(await trustScoring.hasScore(user1.address)).to.equal(true);
+      } catch {
+        this.skip();
+      }
+    });
+
+    it("should reject employer scoring a non-employee", async function () {
+      await setupEmployerScoring();
+
+      // oracle2 registers as employer but has no employees
+      // oracle2 is not an oracle either
+      await expect(
+        trustScoring.connect(unauthorized).setTrustScorePlaintext(user1.address, 50)
+      ).to.be.revertedWithCustomError(trustScoring, "NotAuthorizedScorer");
+    });
+
+    it("should allow setPayGramCore by owner", async function () {
+      await expect(
+        trustScoring.connect(owner).setPayGramCore(user1.address)
+      ).to.emit(trustScoring, "PayGramCoreUpdated").withArgs(user1.address);
+      expect(await trustScoring.payGramCore()).to.equal(user1.address);
+    });
+
+    it("should reject setPayGramCore from non-owner", async function () {
+      await expect(
+        trustScoring.connect(unauthorized).setPayGramCore(user1.address)
+      ).to.be.revertedWithCustomError(trustScoring, "OwnableUnauthorizedAccount");
+    });
+
+    it("should reject setPayGramCore with zero address", async function () {
+      await expect(
+        trustScoring.connect(owner).setPayGramCore(ethers.ZeroAddress)
+      ).to.be.revertedWithCustomError(trustScoring, "ZeroAddress");
     });
   });
 

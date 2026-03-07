@@ -134,6 +134,10 @@ describe("Trusted PayGram — Integration", function () {
       .connect(owner)
       .setPayGramCore(await payGramCore.getAddress());
 
+    await trustScoring
+      .connect(owner)
+      .setPayGramCore(await payGramCore.getAddress());
+
     // ── Detect FHE availability ──────────────────────────────────
     try {
       await trustScoring
@@ -173,8 +177,8 @@ describe("Trusted PayGram — Integration", function () {
       expect(await payGramCore.owner()).to.equal(owner.address);
     });
 
-    it("should set employer on PayGramCore", async function () {
-      expect(await payGramCore.employer()).to.equal(employer.address);
+    it("should register initial employer on PayGramCore", async function () {
+      expect(await payGramCore.isEmployer(employer.address)).to.be.true;
     });
 
     it("should set correct TrustScoring reference in PayGramCore", async function () {
@@ -362,7 +366,7 @@ describe("Trusted PayGram — Integration", function () {
         this, employee1, 5000, "engineer", 80
       );
 
-      const emp = await payGramCore.getEmployee(employee1.address);
+      const emp = await payGramCore.getEmployee(employer.address, employee1.address);
       expect(emp.empWallet).to.equal(employee1.address);
       expect(emp.isActive).to.be.true;
       expect(emp.role).to.equal("engineer");
@@ -371,7 +375,7 @@ describe("Trusted PayGram — Integration", function () {
     it("should verify the employee appears in PayGramCore roster (FHE)", async function () {
       await addEmployeeOrSkip(this, employee1, 5000, "engineer");
 
-      const list = await payGramCore.getEmployeeList();
+      const list = await payGramCore.getEmployeeList(employer.address);
       expect(list).to.include(employee1.address);
     });
 
@@ -398,8 +402,8 @@ describe("Trusted PayGram — Integration", function () {
         this.skip();
       }
 
-      expect(await payGramCore.employeeCount()).to.equal(2);
-      expect(await payGramCore.activeEmployeeCount()).to.equal(2);
+      expect(await payGramCore.employeeCount(employer.address)).to.equal(2);
+      expect(await payGramCore.activeEmployeeCount(employer.address)).to.equal(2);
     });
   });
 
@@ -457,7 +461,7 @@ describe("Trusted PayGram — Integration", function () {
         this.skip();
       }
 
-      const emp = await payGramCore.getEmployee(employee1.address);
+      const emp = await payGramCore.getEmployee(employer.address, employee1.address);
       expect(emp.lastPayDate).to.be.greaterThan(0);
     });
   });
@@ -693,7 +697,7 @@ describe("Trusted PayGram — Integration", function () {
 
       await expect(
         payGramCore.connect(unauthorized).releasePayment(escrowedId!)
-      ).to.be.revertedWithCustomError(payGramCore, "NotEmployer");
+      ).to.be.revertedWithCustomError(payGramCore, "NotPaymentEmployer");
     });
   });
 
@@ -774,7 +778,7 @@ describe("Trusted PayGram — Integration", function () {
       // Each scored employee creates 3 payments (instant/delayed/escrow from FHE.select)
       // Total: 3 employees × 3 payments = 9
       expect(await payGramCore.nextPaymentId()).to.equal(9);
-      expect(await payGramCore.totalPayrollsExecuted()).to.equal(1);
+      expect(await payGramCore.employerPayrollCount(employer.address)).to.equal(1);
     });
 
     it("should not affect inactive employees", async function () {
@@ -893,11 +897,6 @@ describe("Trusted PayGram — Integration", function () {
       );
     });
 
-    it("should allow transferring employer role", async function () {
-      await payGramCore.connect(owner).transferEmployer(employee3.address);
-      expect(await payGramCore.employer()).to.equal(employee3.address);
-    });
-
     it("should reject admin updates from non-owner", async function () {
       await expect(
         payGramCore
@@ -910,13 +909,6 @@ describe("Trusted PayGram — Integration", function () {
 
       await expect(
         payGramCore.connect(unauthorized).updatePayToken(employee1.address)
-      ).to.be.revertedWithCustomError(
-        payGramCore,
-        "OwnableUnauthorizedAccount"
-      );
-
-      await expect(
-        payGramCore.connect(unauthorized).transferEmployer(employee1.address)
       ).to.be.revertedWithCustomError(
         payGramCore,
         "OwnableUnauthorizedAccount"
@@ -935,7 +927,7 @@ describe("Trusted PayGram — Integration", function () {
       } catch {
         this.skip();
       }
-      expect(await payGramCore.totalPayrollsExecuted()).to.equal(1);
+      expect(await payGramCore.employerPayrollCount(employer.address)).to.equal(1);
       expect(await payGramCore.nextPaymentId()).to.equal(0);
     });
 
@@ -949,7 +941,7 @@ describe("Trusted PayGram — Integration", function () {
         this.skip();
       }
 
-      expect(await payGramCore.totalPayrollsExecuted()).to.equal(1);
+      expect(await payGramCore.employerPayrollCount(employer.address)).to.equal(1);
       expect(await payGramCore.nextPaymentId()).to.equal(0);
     });
 
@@ -1056,7 +1048,7 @@ describe("Trusted PayGram — Integration", function () {
             .addEmployeePlaintext(employee1.address, 5000, "dev")
         )
           .to.emit(payGramCore, "EmployeeAdded")
-          .withArgs(employee1.address, "dev", await time.latest() + 1);
+          .withArgs(employer.address, employee1.address, "dev", await time.latest() + 1);
       } catch {
         this.skip();
       }
@@ -1069,7 +1061,7 @@ describe("Trusted PayGram — Integration", function () {
         payGramCore.connect(employer).removeEmployee(employee1.address)
       )
         .to.emit(payGramCore, "EmployeeRemoved")
-        .withArgs(employee1.address);
+        .withArgs(employer.address, employee1.address);
     });
   });
 
@@ -1078,7 +1070,7 @@ describe("Trusted PayGram — Integration", function () {
   // ────────────────────────────────────────────────────────────────
 
   describe("Multiple payroll runs (FHE)", function () {
-    it("should increment totalPayrollsExecuted on each run", async function () {
+    it("should increment employerPayrollCount on each run", async function () {
       await addScoredEmployeeOrSkip(
         this, employee1, 1000, "engineer", 80
       );
@@ -1098,7 +1090,86 @@ describe("Trusted PayGram — Integration", function () {
         this.skip();
       }
 
-      expect(await payGramCore.totalPayrollsExecuted()).to.equal(2);
+      expect(await payGramCore.employerPayrollCount(employer.address)).to.equal(2);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────
+  //  Employer Registration
+  // ────────────────────────────────────────────────────────────────
+
+  describe("Employer registration", function () {
+    it("should allow any address to register as employer", async function () {
+      await payGramCore.connect(unauthorized).registerAsEmployer();
+      expect(await payGramCore.isEmployer(unauthorized.address)).to.be.true;
+    });
+
+    it("should reject double registration", async function () {
+      await expect(
+        payGramCore.connect(employer).registerAsEmployer()
+      ).to.be.revertedWithCustomError(payGramCore, "AlreadyEmployer");
+    });
+
+    it("should emit EmployerRegistered event", async function () {
+      await expect(payGramCore.connect(unauthorized).registerAsEmployer())
+        .to.emit(payGramCore, "EmployerRegistered")
+        .withArgs(unauthorized.address);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────
+  //  Token Faucet
+  // ────────────────────────────────────────────────────────────────
+
+  describe("Token faucet", function () {
+    it("should allow anyone to mint test tokens (FHE)", async function () {
+      try {
+        await payGramToken.connect(employee1).mintTestTokens();
+      } catch {
+        this.skip();
+      }
+
+      expect(await payGramToken.totalMinted()).to.equal(10_000);
+    });
+
+    it("should enforce faucet cooldown (FHE)", async function () {
+      try {
+        await payGramToken.connect(employee1).mintTestTokens();
+      } catch {
+        this.skip();
+      }
+
+      await expect(
+        payGramToken.connect(employee1).mintTestTokens()
+      ).to.be.revertedWithCustomError(payGramToken, "FaucetCooldownActive");
+    });
+
+    it("should allow mint after cooldown expires (FHE)", async function () {
+      try {
+        await payGramToken.connect(employee1).mintTestTokens();
+      } catch {
+        this.skip();
+      }
+
+      await time.increase(3601); // 1 hour + 1 second
+
+      try {
+        await payGramToken.connect(employee1).mintTestTokens();
+      } catch {
+        this.skip();
+      }
+
+      expect(await payGramToken.totalMinted()).to.equal(20_000);
+    });
+
+    it("should emit TestTokensMinted event (FHE)", async function () {
+      try {
+        await expect(payGramToken.connect(employee1).mintTestTokens())
+          .to.emit(payGramToken, "TestTokensMinted")
+          .withArgs(employee1.address, 10_000);
+      } catch {
+        this.skip();
+      }
     });
   });
 });

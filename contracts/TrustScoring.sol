@@ -4,6 +4,7 @@ pragma solidity ^0.8.27;
 import {FHE, euint64, externalEuint64, ebool} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {IPayGramCore} from "./IPayGramCore.sol";
 
 /**
  * @title TrustScoring
@@ -53,6 +54,9 @@ contract TrustScoring is ZamaEthereumConfig, Ownable2Step {
     ///      Only populated by plaintext setters (setTrustScorePlaintext, batchSetScores).
     mapping(address => uint8) private _tierCache;
 
+    /// @notice PayGramCore contract reference for employer-scoped score setting.
+    address public payGramCore;
+
     // ──────────────────────────────────────────────────────────────────
     //  Events
     // ──────────────────────────────────────────────────────────────────
@@ -61,6 +65,7 @@ contract TrustScoring is ZamaEthereumConfig, Ownable2Step {
     event OracleAuthorized(address indexed oracle, bool authorized);
     event TrustScoreRevoked(address indexed account);
     event ScoreAccessGranted(address indexed account, address indexed allowedAddress);
+    event PayGramCoreUpdated(address indexed newCore);
 
     // ──────────────────────────────────────────────────────────────────
     //  Errors
@@ -72,6 +77,7 @@ contract TrustScoring is ZamaEthereumConfig, Ownable2Step {
     error InvalidScoreRange();
     error BatchLengthMismatch();
     error ZeroAddress();
+    error NotAuthorizedScorer();
 
     // ──────────────────────────────────────────────────────────────────
     //  Modifiers
@@ -79,6 +85,22 @@ contract TrustScoring is ZamaEthereumConfig, Ownable2Step {
 
     modifier onlyOracle() {
         if (!authorizedOracles[msg.sender]) revert UnauthorizedOracle();
+        _;
+    }
+
+    /// @dev Allows oracles or employers scoring their own active employees.
+    modifier onlyScorer(address account) {
+        if (authorizedOracles[msg.sender]) {
+            // Oracle -- always authorized
+        } else if (
+            payGramCore != address(0) &&
+            IPayGramCore(payGramCore).isEmployer(msg.sender) &&
+            IPayGramCore(payGramCore).isActiveEmployee(msg.sender, account)
+        ) {
+            // Employer scoring their own active employee
+        } else {
+            revert NotAuthorizedScorer();
+        }
         _;
     }
 
@@ -114,6 +136,16 @@ contract TrustScoring is ZamaEthereumConfig, Ownable2Step {
         if (oracle == address(0)) revert ZeroAddress();
         authorizedOracles[oracle] = authorized;
         emit OracleAuthorized(oracle, authorized);
+    }
+
+    /**
+     * @notice Sets the PayGramCore contract address for employer-scoped scoring.
+     * @param _core Address of the deployed PayGramCore contract.
+     */
+    function setPayGramCore(address _core) external onlyOwner {
+        if (_core == address(0)) revert ZeroAddress();
+        payGramCore = _core;
+        emit PayGramCoreUpdated(_core);
     }
 
     // ──────────────────────────────────────────────────────────────────
@@ -156,7 +188,7 @@ contract TrustScoring is ZamaEthereumConfig, Ownable2Step {
      * @param account Address whose score to set.
      * @param score   Plaintext score value (0-100).
      */
-    function setTrustScorePlaintext(address account, uint64 score) external onlyOracle {
+    function setTrustScorePlaintext(address account, uint64 score) external onlyScorer(account) {
         if (account == address(0)) revert ZeroAddress();
 
         uint64 clamped = score > MAX_SCORE ? uint64(MAX_SCORE) : score;
@@ -179,11 +211,25 @@ contract TrustScoring is ZamaEthereumConfig, Ownable2Step {
     function batchSetScores(
         address[] calldata accounts,
         uint64[] calldata scores
-    ) external onlyOracle {
+    ) external {
         if (accounts.length != scores.length) revert BatchLengthMismatch();
+
+        bool isOracle = authorizedOracles[msg.sender];
+        bool isEmp = !isOracle &&
+            payGramCore != address(0) &&
+            IPayGramCore(payGramCore).isEmployer(msg.sender);
 
         for (uint256 i = 0; i < accounts.length; i++) {
             if (accounts[i] == address(0)) revert ZeroAddress();
+
+            // Authorization check per account
+            if (isOracle) {
+                // Oracle -- always authorized
+            } else if (isEmp && IPayGramCore(payGramCore).isActiveEmployee(msg.sender, accounts[i])) {
+                // Employer scoring own employee
+            } else {
+                revert NotAuthorizedScorer();
+            }
 
             uint64 clamped = scores[i] > MAX_SCORE ? uint64(MAX_SCORE) : scores[i];
             euint64 encrypted = FHE.asEuint64(clamped);

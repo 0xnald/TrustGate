@@ -22,9 +22,9 @@ export const CONTRACT_ADDRESSES: Record<
   { trustScoring: string; payGramCore: string; payGramToken: string }
 > = {
   [SUPPORTED_CHAINS.sepolia.chainId]: {
-    trustScoring: "0xb239eFe265df2eAD499AeF2d5ECD1b2924da9Fe9",
-    payGramToken: "0xC97C848E7021AdFC36269ddc5e39E54939E81704",
-    payGramCore: "0x331048736e7dC599E46187CaBa00dcC46952a7d7",
+    trustScoring: "0x1DacB05d09435b2d9dBf56761487177dB893d0f5",
+    payGramToken: "0xA8b4Fa823A2c0551F95bC61a8CbeE0fcD9c0a896",
+    payGramCore: "0x2b8037E8480DB5B4DFb19EA332Db667A6c6cC0Dc",
   },
   [SUPPORTED_CHAINS.mainnet.chainId]: {
     trustScoring: "0xaa3ae25ebac250ff67f4d9e3195c4c7610055067",

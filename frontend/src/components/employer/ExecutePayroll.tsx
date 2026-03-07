@@ -9,11 +9,11 @@ import Dialog from "@/components/ui/Dialog";
 import Badge from "@/components/ui/Badge";
 
 interface ExecutePayrollProps {
-  isOwner: boolean;
+  isEmployer: boolean;
 }
 
-export default function ExecutePayroll({ isOwner }: ExecutePayrollProps) {
-  const { payGramCore, contractsReady } = useWeb3();
+export default function ExecutePayroll({ isEmployer }: ExecutePayrollProps) {
+  const { payGramCore, contractsReady, address } = useWeb3();
   const [activeCount, setActiveCount] = useState<number>(0);
   const [totalPayrolls, setTotalPayrolls] = useState<number>(0);
   const [isExecuting, setIsExecuting] = useState(false);
@@ -25,16 +25,16 @@ export default function ExecutePayroll({ isOwner }: ExecutePayrollProps) {
   } | null>(null);
 
   const fetchStats = useCallback(async () => {
-    if (!payGramCore) {
+    if (!payGramCore || !address) {
       setUseMock(true);
       setActiveCount(MOCK_STATS.activeEmployees);
       setTotalPayrolls(MOCK_STATS.totalPayrolls);
       return;
     }
     try {
-      const count = await payGramCore.activeEmployeeCount();
+      const count = await payGramCore.activeEmployeeCount(address);
       setActiveCount(Number(count));
-      const payrolls = await payGramCore.totalPayrollsExecuted();
+      const payrolls = await payGramCore.employerPayrollCount(address);
       setTotalPayrolls(Number(payrolls));
       setUseMock(false);
     } catch {
@@ -42,7 +42,7 @@ export default function ExecutePayroll({ isOwner }: ExecutePayrollProps) {
       setActiveCount(MOCK_STATS.activeEmployees);
       setTotalPayrolls(MOCK_STATS.totalPayrolls);
     }
-  }, [payGramCore]);
+  }, [payGramCore, address]);
 
   useEffect(() => {
     fetchStats();
@@ -136,7 +136,7 @@ export default function ExecutePayroll({ isOwner }: ExecutePayrollProps) {
 
         <Button
           onClick={() => setShowConfirm(true)}
-          disabled={!contractsReady || activeCount === 0 || !isOwner}
+          disabled={!contractsReady || activeCount === 0 || !isEmployer}
           className="w-full"
           size="lg"
         >
@@ -151,10 +151,10 @@ export default function ExecutePayroll({ isOwner }: ExecutePayrollProps) {
           </p>
         )}
 
-        {contractsReady && !isOwner && (
+        {contractsReady && !isEmployer && (
           <p className="flex items-center gap-1.5 mt-3 text-xs text-gray-400 dark:text-slate-500">
             <Lock size={12} />
-            Only contract owner can execute payroll
+            Register as employer to execute payroll
           </p>
         )}
 

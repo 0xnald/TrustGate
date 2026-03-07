@@ -40,13 +40,19 @@ export default function PayrollHistory() {
       for (let i = 0; i < total && i < 50; i++) {
         try {
           const p = await payGramCore.getPendingPayment(i);
+          // getPendingPayment returns (employee, employer, status, createdAt, releaseTime, milestone)
+          const employee = p[0] ?? p.employee;
+          const status = p[2] ?? p.status;
+          const createdAt = p[3] ?? p.createdAt;
+          const releaseTime = p[4] ?? p.releaseTime;
+          const milestone = p[5] ?? p.milestone;
           records.push({
             id: i,
-            employee: p.employee,
-            status: Number(p.status),
-            createdAt: p.createdAt,
-            releaseTime: p.releaseTime,
-            milestone: p.milestone,
+            employee,
+            status: Number(status),
+            createdAt,
+            releaseTime,
+            milestone,
           });
         } catch {
           // Skip invalid payments

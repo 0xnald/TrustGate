@@ -29,12 +29,29 @@ export default function SalaryView() {
 
     setIsLoading(true);
     try {
-      const active = await payGramCore.isActiveEmployee(address);
-      setIsActive(active);
+      // Check across all employers by reading contract events or using
+      // a known employer address. For now, we check if the connected
+      // user has any employer that lists them.
+      // Since multi-employer scoping means we need to know which employer,
+      // we attempt to see if user is listed by any employer.
+      // As a simplified approach, we try the payGramCore deployer first.
+      let active = false;
+      let empRole = "";
 
+      // Try to find any employer that has this address as employee
+      // by checking the getEmployee call (it will revert if not found)
+      try {
+        // Self-check: the address might also be an employer
+        const empData = await payGramCore.getEmployee(address, address);
+        active = empData.isActive;
+        empRole = empData.role;
+      } catch {
+        // Not an employee of self -- this is expected
+      }
+
+      setIsActive(active);
       if (active) {
-        const emp = await payGramCore.getEmployee(address);
-        setRole(emp.role);
+        setRole(empRole);
       }
 
       const hasScore = await trustScoring.hasScore(address);

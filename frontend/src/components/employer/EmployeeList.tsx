@@ -22,31 +22,31 @@ interface EmployeeData {
 
 interface EmployeeListProps {
   onAddEmployee: () => void;
-  isOwner: boolean;
+  isEmployer: boolean;
 }
 
 const TIER_MAP: Record<number, "high" | "medium" | "low"> = { 2: "high", 1: "medium", 0: "low" };
 
-export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListProps) {
-  const { payGramCore, trustScoring, contractsReady } = useWeb3();
+export default function EmployeeList({ onAddEmployee, isEmployer }: EmployeeListProps) {
+  const { payGramCore, trustScoring, contractsReady, address } = useWeb3();
   const [employees, setEmployees] = useState<EmployeeData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [useMock, setUseMock] = useState(false);
 
   const fetchEmployees = useCallback(async () => {
-    if (!payGramCore) {
+    if (!payGramCore || !address) {
       setUseMock(true);
       return;
     }
 
     setIsLoading(true);
     try {
-      const addresses: string[] = await payGramCore.getEmployeeList();
+      const addresses: string[] = await payGramCore.getEmployeeList(address);
       const empData: EmployeeData[] = [];
 
       for (const addr of addresses) {
         try {
-          const emp = await payGramCore.getEmployee(addr);
+          const emp = await payGramCore.getEmployee(address, addr);
 
           let tier: "high" | "medium" | "low" | "unscored" = "unscored";
           if (trustScoring) {
@@ -81,7 +81,7 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
     } finally {
       setIsLoading(false);
     }
-  }, [payGramCore, trustScoring]);
+  }, [payGramCore, trustScoring, address]);
 
   useEffect(() => {
     if (contractsReady) {
@@ -121,12 +121,12 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
             Refresh
           </Button>
           <div className="relative group">
-            <Button variant="primary" size="sm" onClick={onAddEmployee} disabled={!isOwner}>
+            <Button variant="primary" size="sm" onClick={onAddEmployee} disabled={!isEmployer}>
               Add Employee
             </Button>
-            {!isOwner && (
+            {!isEmployer && (
               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 rounded-lg bg-gray-900 dark:bg-slate-700 text-[11px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                Only contract owner can add employees
+                Register as employer first
               </span>
             )}
           </div>
@@ -140,7 +140,7 @@ export default function EmployeeList({ onAddEmployee, isOwner }: EmployeeListPro
           <p className="text-xs text-gray-400 dark:text-slate-500 mb-4">
             Add your first team member to get started
           </p>
-          <Button size="sm" onClick={onAddEmployee} disabled={!isOwner}>
+          <Button size="sm" onClick={onAddEmployee} disabled={!isEmployer}>
             Add Employee
           </Button>
         </div>

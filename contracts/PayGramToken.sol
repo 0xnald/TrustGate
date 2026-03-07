@@ -31,6 +31,12 @@ contract PayGramToken is ZamaEthereumConfig, ERC7984ObserverAccess, Ownable2Step
     /// @notice Maximum token supply (1 billion cPAY).
     uint64 public constant MAX_SUPPLY = 1_000_000_000;
 
+    /// @notice Amount of test tokens per faucet claim.
+    uint64 public constant FAUCET_AMOUNT = 10_000;
+
+    /// @notice Cooldown between faucet claims per address.
+    uint256 public constant FAUCET_COOLDOWN = 1 hours;
+
     // ──────────────────────────────────────────────────────────────────
     //  State
     // ──────────────────────────────────────────────────────────────────
@@ -41,12 +47,16 @@ contract PayGramToken is ZamaEthereumConfig, ERC7984ObserverAccess, Ownable2Step
     /// @notice Cumulative plaintext tokens minted (used for supply cap enforcement).
     uint64 public totalMinted;
 
+    /// @notice Last faucet claim timestamp per address.
+    mapping(address => uint256) public lastFaucetClaim;
+
     // ──────────────────────────────────────────────────────────────────
     //  Events
     // ──────────────────────────────────────────────────────────────────
 
     event PayGramCoreUpdated(address indexed oldCore, address indexed newCore);
     event TokensMinted(address indexed to, uint64 amount);
+    event TestTokensMinted(address indexed to, uint64 amount);
 
     // ──────────────────────────────────────────────────────────────────
     //  Errors
@@ -55,6 +65,7 @@ contract PayGramToken is ZamaEthereumConfig, ERC7984ObserverAccess, Ownable2Step
     error CoreIsZeroAddress();
     error MintToZeroAddress();
     error SupplyCapExceeded();
+    error FaucetCooldownActive();
 
     // ──────────────────────────────────────────────────────────────────
     //  Constructor
@@ -145,6 +156,29 @@ contract PayGramToken is ZamaEthereumConfig, ERC7984ObserverAccess, Ownable2Step
 
         euint64 validated = FHE.fromExternal(encryptedAmount, inputProof);
         _mint(to, validated);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    //  Faucet — Test Token Minting
+    // ──────────────────────────────────────────────────────────────────
+
+    /**
+     * @notice Mints test tokens to the caller. Anyone can call, subject to a
+     *         1-hour cooldown and the global supply cap.
+     */
+    function mintTestTokens() external {
+        if (block.timestamp < lastFaucetClaim[msg.sender] + FAUCET_COOLDOWN)
+            revert FaucetCooldownActive();
+        if (uint256(totalMinted) + uint256(FAUCET_AMOUNT) > uint256(MAX_SUPPLY))
+            revert SupplyCapExceeded();
+
+        lastFaucetClaim[msg.sender] = block.timestamp;
+
+        euint64 encryptedAmount = FHE.asEuint64(FAUCET_AMOUNT);
+        _mint(msg.sender, encryptedAmount);
+        totalMinted += FAUCET_AMOUNT;
+
+        emit TestTokensMinted(msg.sender, FAUCET_AMOUNT);
     }
 
     // ──────────────────────────────────────────────────────────────────

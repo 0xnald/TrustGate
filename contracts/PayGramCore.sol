@@ -9,16 +9,17 @@ import {IERC7984} from "@openzeppelin/confidential-contracts/interfaces/IERC7984
 
 /**
  * @title PayGramCore
- * @notice Payroll engine that routes encrypted salary payments through trust-gated tiers.
- *         Employers register employees with encrypted salaries and trigger batch payroll
- *         runs. The contract reads each employee's encrypted trust tier from TrustScoring
- *         and routes payment accordingly — instant, delayed, or escrowed — all without
- *         revealing salaries or scores to any party.
+ * @notice Multi-employer payroll engine that routes encrypted salary payments through
+ *         trust-gated tiers. Any address can register as an employer and manage its own
+ *         independent roster of employees and payroll runs. The contract reads each
+ *         employee's encrypted trust tier from TrustScoring and routes payment
+ *         accordingly -- instant, delayed, or escrowed -- all without revealing
+ *         salaries or scores to any party.
  *
  * @dev Payment routing logic (fully oblivious via FHE.select):
- *      1. HIGH trust  (score >= 75) → immediate encrypted transfer
- *      2. MEDIUM trust (score >= 40) → 24-hour time-locked release
- *      3. LOW trust   (score <  40) → milestone-gated escrow
+ *      1. HIGH trust  (score >= 75) -> immediate encrypted transfer
+ *      2. MEDIUM trust (score >= 40) -> 24-hour time-locked release
+ *      3. LOW trust   (score <  40) -> milestone-gated escrow
  *
  *      Employees without a trust score are treated as LOW trust.
  *      The PayGramCore contract holds tokens pre-funded by the employer.
@@ -26,29 +27,29 @@ import {IERC7984} from "@openzeppelin/confidential-contracts/interfaces/IERC7984
  *      the contract's own balance to employees.
  */
 contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
     //  Constants
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
 
     uint256 public constant DELAY_PERIOD   = 24 hours;
     uint256 public constant MAX_BATCH_SIZE = 50;
 
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
     //  Enums
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
 
     enum PaymentStatus {
-        None,       // 0 — default / uninitialized
-        Instant,    // 1 — immediate transfer (high trust)
-        Delayed,    // 2 — time-locked release (medium trust)
-        Escrowed,   // 3 — milestone-gated (low trust / unscored)
-        Released,   // 4 — funds disbursed
-        Completed   // 5 — finalized or cancelled
+        None,       // 0 -- default / uninitialized
+        Instant,    // 1 -- immediate transfer (high trust)
+        Delayed,    // 2 -- time-locked release (medium trust)
+        Escrowed,   // 3 -- milestone-gated (low trust / unscored)
+        Released,   // 4 -- funds disbursed
+        Completed   // 5 -- finalized or cancelled
     }
 
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
     //  Structs
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
 
     struct Employee {
         address wallet;
@@ -62,6 +63,7 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
     struct PendingPayment {
         uint256       id;
         address       employee;
+        address       employer;
         euint64       encryptedAmount;
         PaymentStatus status;
         uint256       createdAt;
@@ -69,39 +71,47 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         string        milestone;
     }
 
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
     //  State
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
 
     TrustScoring public trustScoring;
     address      public payToken;
-    address      public employer;
 
-    mapping(address => Employee) private _employees;
-    address[] public employeeList;
+    /// @notice Whether an address has registered as an employer.
+    mapping(address => bool) public isEmployer;
+
+    /// @dev Employee list per employer.
+    mapping(address => address[]) private _employerEmployees;
+
+    /// @dev Employee data scoped by employer.
+    mapping(address => mapping(address => Employee)) private _employerEmployeeData;
+
+    /// @dev Number of payroll runs per employer.
+    mapping(address => uint256) public employerPayrollCount;
 
     mapping(uint256 => PendingPayment) public pendingPayments;
     uint256 public nextPaymentId;
 
-    uint256 public totalPayrollsExecuted;
-
     /// @dev Simple reentrancy lock for payroll execution.
     bool private _payrollLock;
 
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
     //  Events
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
 
-    event EmployeeAdded(address indexed employee, string role, uint256 hireDate);
-    event EmployeeRemoved(address indexed employee);
-    event EmployeeUpdated(address indexed employee);
-    event SalaryUpdated(address indexed employee);
+    event EmployerRegistered(address indexed employer);
+    event EmployeeAdded(address indexed employer, address indexed employee, string role, uint256 hireDate);
+    event EmployeeRemoved(address indexed employer, address indexed employee);
+    event EmployeeUpdated(address indexed employer, address indexed employee);
+    event SalaryUpdated(address indexed employer, address indexed employee);
     event PayrollExecuted(
+        address indexed employer,
         uint256 indexed payrollId,
         uint256 timestamp,
         uint256 employeeCount
     );
-    event InstantPayment(address indexed employee, uint256 timestamp);
+    event InstantPayment(address indexed employer, address indexed employee, uint256 timestamp);
     event PaymentDelayed(
         uint256 indexed paymentId,
         address indexed employee,
@@ -116,34 +126,32 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
     event PaymentCancelled(uint256 indexed paymentId, address indexed employee);
     event TrustScoringUpdated(address indexed newTrustScoring);
     event PayTokenUpdated(address indexed newPayToken);
-    event EmployerTransferred(
-        address indexed previousEmployer,
-        address indexed newEmployer
-    );
 
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
     //  Errors
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
 
     error NotEmployer();
+    error AlreadyEmployer();
     error EmployeeAlreadyExists();
     error EmployeeNotFound();
     error EmployeeNotActive();
     error PaymentNotFound();
     error PaymentNotReleasable();
     error PaymentAlreadyProcessed();
+    error NotPaymentEmployer();
     error DelayNotElapsed();
     error PayrollLocked();
     error BatchTooLarge();
     error ZeroAddress();
     error ArrayLengthMismatch();
 
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
     //  Modifiers
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
 
     modifier onlyEmployer() {
-        if (msg.sender != employer) revert NotEmployer();
+        if (!isEmployer[msg.sender]) revert NotEmployer();
         _;
     }
 
@@ -154,13 +162,13 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         _payrollLock = false;
     }
 
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
     //  Constructor
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
 
     /**
      * @param initialOwner    Admin (for Ownable2Step).
-     * @param employerAddress The employer authorized to manage payroll.
+     * @param employerAddress The initial employer auto-registered at deploy.
      * @param _trustScoring   Deployed TrustScoring contract.
      * @param _payToken       Deployed PayGramToken (ERC-7984) address.
      */
@@ -174,14 +182,29 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         if (_trustScoring == address(0)) revert ZeroAddress();
         if (_payToken == address(0)) revert ZeroAddress();
 
-        employer     = employerAddress;
+        isEmployer[employerAddress] = true;
+        emit EmployerRegistered(employerAddress);
+
         trustScoring = TrustScoring(_trustScoring);
         payToken     = _payToken;
     }
 
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
+    //  Employer Registration
+    // ------------------------------------------------------------------
+
+    /**
+     * @notice Registers the caller as an employer.
+     */
+    function registerAsEmployer() external {
+        if (isEmployer[msg.sender]) revert AlreadyEmployer();
+        isEmployer[msg.sender] = true;
+        emit EmployerRegistered(msg.sender);
+    }
+
+    // ------------------------------------------------------------------
     //  Employee Management
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
 
     /**
      * @notice Registers an employee with an FHE-encrypted salary.
@@ -197,11 +220,11 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         string calldata role
     ) external onlyEmployer {
         if (wallet == address(0)) revert ZeroAddress();
-        if (_employees[wallet].wallet != address(0))
+        if (_employerEmployeeData[msg.sender][wallet].wallet != address(0))
             revert EmployeeAlreadyExists();
 
         euint64 salary = FHE.fromExternal(encryptedSalary, inputProof);
-        _storeEmployee(wallet, salary, role);
+        _storeEmployee(msg.sender, wallet, salary, role);
     }
 
     /**
@@ -216,11 +239,11 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         string calldata role
     ) external onlyEmployer {
         if (wallet == address(0)) revert ZeroAddress();
-        if (_employees[wallet].wallet != address(0))
+        if (_employerEmployeeData[msg.sender][wallet].wallet != address(0))
             revert EmployeeAlreadyExists();
 
         euint64 encrypted = FHE.asEuint64(salary);
-        _storeEmployee(wallet, encrypted, role);
+        _storeEmployee(msg.sender, wallet, encrypted, role);
     }
 
     /**
@@ -228,12 +251,12 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
      * @param wallet Employee to deactivate.
      */
     function removeEmployee(address wallet) external onlyEmployer {
-        Employee storage emp = _employees[wallet];
+        Employee storage emp = _employerEmployeeData[msg.sender][wallet];
         if (emp.wallet == address(0)) revert EmployeeNotFound();
         if (!emp.isActive) revert EmployeeNotActive();
 
         emp.isActive = false;
-        emit EmployeeRemoved(wallet);
+        emit EmployeeRemoved(msg.sender, wallet);
     }
 
     /**
@@ -247,13 +270,13 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         externalEuint64 encryptedSalary,
         bytes calldata inputProof
     ) external onlyEmployer {
-        _requireActiveEmployee(wallet);
+        _requireActiveEmployee(msg.sender, wallet);
 
         euint64 salary = FHE.fromExternal(encryptedSalary, inputProof);
-        _setSalaryPermissions(wallet, salary);
-        _employees[wallet].encryptedSalary = salary;
+        _setSalaryPermissions(msg.sender, wallet, salary);
+        _employerEmployeeData[msg.sender][wallet].encryptedSalary = salary;
 
-        emit SalaryUpdated(wallet);
+        emit SalaryUpdated(msg.sender, wallet);
     }
 
     /**
@@ -265,13 +288,13 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         address wallet,
         uint64 salary
     ) external onlyEmployer {
-        _requireActiveEmployee(wallet);
+        _requireActiveEmployee(msg.sender, wallet);
 
         euint64 encrypted = FHE.asEuint64(salary);
-        _setSalaryPermissions(wallet, encrypted);
-        _employees[wallet].encryptedSalary = encrypted;
+        _setSalaryPermissions(msg.sender, wallet, encrypted);
+        _employerEmployeeData[msg.sender][wallet].encryptedSalary = encrypted;
 
-        emit SalaryUpdated(wallet);
+        emit SalaryUpdated(msg.sender, wallet);
     }
 
     /**
@@ -283,23 +306,23 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         address wallet,
         string calldata newRole
     ) external onlyEmployer {
-        _requireActiveEmployee(wallet);
-        _employees[wallet].role = newRole;
-        emit EmployeeUpdated(wallet);
+        _requireActiveEmployee(msg.sender, wallet);
+        _employerEmployeeData[msg.sender][wallet].role = newRole;
+        emit EmployeeUpdated(msg.sender, wallet);
     }
 
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
     //  Payroll Execution
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
 
     /**
-     * @notice Runs payroll for all active employees.
+     * @notice Runs payroll for all active employees of the calling employer.
      * @dev    For each active employee:
      *         - If the employee has a trust score, uses FHE tier evaluation
      *           to route salary through instant / delayed / escrow paths.
      *         - If no trust score exists, defaults to escrow (LOW trust).
      *
-     *         FHE.select ensures the routing is fully oblivious — no tier
+     *         FHE.select ensures the routing is fully oblivious -- no tier
      *         information is revealed on-chain.
      *
      *         Instant payments transfer immediately from the contract balance.
@@ -307,41 +330,43 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
      */
     function executePayroll() external onlyEmployer noReentrantPayroll {
         uint256 processed = 0;
-        uint256 len = employeeList.length;
+        address[] storage empList = _employerEmployees[msg.sender];
+        uint256 len = empList.length;
 
         for (uint256 i = 0; i < len && processed < MAX_BATCH_SIZE; i++) {
-            Employee storage emp = _employees[employeeList[i]];
+            Employee storage emp = _employerEmployeeData[msg.sender][empList[i]];
             if (!emp.isActive) continue;
 
             processed++;
 
             if (!trustScoring.hasScore(emp.wallet)) {
-                // No trust score → default to escrow (LOW trust)
-                _processEscrowPayment(emp);
+                // No trust score -> default to escrow (LOW trust)
+                _processEscrowPayment(msg.sender, emp);
             } else {
-                // Scored → FHE tier evaluation and oblivious routing
-                _processWithTrustTier(emp);
+                // Scored -> FHE tier evaluation and oblivious routing
+                _processWithTrustTier(msg.sender, emp);
             }
 
             emp.lastPayDate = block.timestamp;
         }
 
-        totalPayrollsExecuted++;
+        employerPayrollCount[msg.sender]++;
         emit PayrollExecuted(
-            totalPayrollsExecuted,
+            msg.sender,
+            employerPayrollCount[msg.sender],
             block.timestamp,
             processed
         );
     }
 
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
     //  Payment Management
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
 
     /**
      * @notice Releases a delayed or escrowed payment.
      * @dev    - Delayed: anyone may release once releaseTime has passed.
-     *         - Escrowed: only the employer may release (milestone approval).
+     *         - Escrowed: only the payment's employer may release (milestone approval).
      *         Executes a confidential ERC-7984 transfer from the contract's
      *         token balance to the employee.
      * @param paymentId Identifier of the payment to release.
@@ -353,7 +378,7 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         if (p.status == PaymentStatus.Delayed) {
             if (block.timestamp < p.releaseTime) revert DelayNotElapsed();
         } else if (p.status == PaymentStatus.Escrowed) {
-            if (msg.sender != employer) revert NotEmployer();
+            if (msg.sender != p.employer) revert NotPaymentEmployer();
         } else {
             revert PaymentNotReleasable();
         }
@@ -371,9 +396,10 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
      * @notice Cancels a pending payment (delayed or escrowed only).
      * @param paymentId Identifier of the payment to cancel.
      */
-    function cancelPayment(uint256 paymentId) external onlyEmployer {
+    function cancelPayment(uint256 paymentId) external {
         PendingPayment storage p = pendingPayments[paymentId];
         if (p.status == PaymentStatus.None) revert PaymentNotFound();
+        if (msg.sender != p.employer) revert NotPaymentEmployer();
         if (
             p.status != PaymentStatus.Delayed &&
             p.status != PaymentStatus.Escrowed
@@ -383,15 +409,17 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         emit PaymentCancelled(paymentId, p.employee);
     }
 
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
     //  View Functions
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
 
     /**
      * @notice Returns non-encrypted employee information.
-     * @param wallet Employee address.
+     * @param employer Employer address.
+     * @param wallet   Employee address.
      */
     function getEmployee(
+        address employer,
         address wallet
     )
         external
@@ -404,25 +432,36 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
             string memory role
         )
     {
-        Employee storage emp = _employees[wallet];
+        Employee storage emp = _employerEmployeeData[employer][wallet];
         if (emp.wallet == address(0)) revert EmployeeNotFound();
         return (emp.wallet, emp.isActive, emp.hireDate, emp.lastPayDate, emp.role);
     }
 
     /**
-     * @notice Returns the full employee list (active + inactive addresses).
+     * @notice Returns the full employee list for the given employer (active + inactive addresses).
+     * @param employer Employer address.
      */
-    function getEmployeeList() external view returns (address[] memory) {
-        return employeeList;
+    function getEmployeeList(address employer) external view returns (address[] memory) {
+        return _employerEmployees[employer];
     }
 
     /**
-     * @notice Returns the count of currently active employees.
+     * @notice Returns the count of registered employees for the given employer.
+     * @param employer Employer address.
      */
-    function activeEmployeeCount() external view returns (uint256 count) {
-        uint256 len = employeeList.length;
+    function employeeCount(address employer) external view returns (uint256) {
+        return _employerEmployees[employer].length;
+    }
+
+    /**
+     * @notice Returns the count of currently active employees for the given employer.
+     * @param employer Employer address.
+     */
+    function activeEmployeeCount(address employer) external view returns (uint256 count) {
+        address[] storage empList = _employerEmployees[employer];
+        uint256 len = empList.length;
         for (uint256 i = 0; i < len; i++) {
-            if (_employees[employeeList[i]].isActive) count++;
+            if (_employerEmployeeData[employer][empList[i]].isActive) count++;
         }
     }
 
@@ -437,6 +476,7 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         view
         returns (
             address       employee,
+            address       employer,
             PaymentStatus status,
             uint256       createdAt,
             uint256       releaseTime,
@@ -445,7 +485,7 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
     {
         PendingPayment storage p = pendingPayments[paymentId];
         if (p.status == PaymentStatus.None) revert PaymentNotFound();
-        return (p.employee, p.status, p.createdAt, p.releaseTime, p.milestone);
+        return (p.employee, p.employer, p.status, p.createdAt, p.releaseTime, p.milestone);
     }
 
     /**
@@ -458,12 +498,10 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         uint256 total = nextPaymentId;
         uint256 matchCount = 0;
 
-        // First pass: count matches
         for (uint256 i = 0; i < total; i++) {
             if (pendingPayments[i].employee == employee) matchCount++;
         }
 
-        // Second pass: collect IDs
         uint256[] memory result = new uint256[](matchCount);
         uint256 idx = 0;
         for (uint256 i = 0; i < total; i++) {
@@ -522,22 +560,17 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
     }
 
     /**
-     * @notice Returns true if `wallet` is a registered active employee.
+     * @notice Returns true if `wallet` is a registered active employee of `employer`.
+     * @param employer Employer address.
+     * @param wallet   Employee address.
      */
-    function isActiveEmployee(address wallet) external view returns (bool) {
-        return _employees[wallet].isActive;
+    function isActiveEmployee(address employer, address wallet) external view returns (bool) {
+        return _employerEmployeeData[employer][wallet].isActive;
     }
 
-    /**
-     * @notice Total number of registered employees (active + inactive).
-     */
-    function employeeCount() external view returns (uint256) {
-        return employeeList.length;
-    }
-
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
     //  Admin Functions
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
 
     /**
      * @notice Updates the TrustScoring contract reference.
@@ -559,32 +592,22 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         emit PayTokenUpdated(newPayToken);
     }
 
-    /**
-     * @notice Transfers the employer role to a new address.
-     * @param newEmployer Address of the new employer.
-     */
-    function transferEmployer(address newEmployer) external onlyOwner {
-        if (newEmployer == address(0)) revert ZeroAddress();
-        address prev = employer;
-        employer = newEmployer;
-        emit EmployerTransferred(prev, newEmployer);
-    }
-
-    // ──────────────────────────────────────────────────────────────────
-    //  Internal — Employee Helpers
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
+    //  Internal -- Employee Helpers
+    // ------------------------------------------------------------------
 
     /**
      * @dev Stores a new Employee struct, sets FHE permissions, updates list.
      */
     function _storeEmployee(
+        address employer,
         address wallet,
         euint64 salary,
         string calldata role
     ) internal {
-        _setSalaryPermissions(wallet, salary);
+        _setSalaryPermissions(employer, wallet, salary);
 
-        _employees[wallet] = Employee({
+        _employerEmployeeData[employer][wallet] = Employee({
             wallet:          wallet,
             encryptedSalary: salary,
             isActive:        true,
@@ -592,89 +615,76 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
             lastPayDate:     0,
             role:            role
         });
-        employeeList.push(wallet);
+        _employerEmployees[employer].push(wallet);
 
-        emit EmployeeAdded(wallet, role, block.timestamp);
+        emit EmployeeAdded(employer, wallet, role, block.timestamp);
     }
 
     /**
      * @dev Grants FHE read permission on a salary ciphertext to the
      *      contract itself, the employer, and the employee.
      */
-    function _setSalaryPermissions(address wallet, euint64 salary) internal {
+    function _setSalaryPermissions(address employer, address wallet, euint64 salary) internal {
         FHE.allowThis(salary);
         FHE.allow(salary, employer);
         FHE.allow(salary, wallet);
     }
 
     /**
-     * @dev Reverts if `wallet` is not a registered, active employee.
+     * @dev Reverts if `wallet` is not a registered, active employee of `employer`.
      */
-    function _requireActiveEmployee(address wallet) internal view {
-        Employee storage emp = _employees[wallet];
+    function _requireActiveEmployee(address employer, address wallet) internal view {
+        Employee storage emp = _employerEmployeeData[employer][wallet];
         if (emp.wallet == address(0)) revert EmployeeNotFound();
         if (!emp.isActive) revert EmployeeNotActive();
     }
 
-    // ──────────────────────────────────────────────────────────────────
-    //  Internal — Payroll Processing
-    // ──────────────────────────────────────────────────────────────────
+    // ------------------------------------------------------------------
+    //  Internal -- Payroll Processing
+    // ------------------------------------------------------------------
 
     /**
      * @dev Routes a scored employee's salary through trust tiers using
      *      FHE.select for fully oblivious branching.
-     *
-     *      Computes three encrypted amounts (instant / delayed / escrow)
-     *      such that exactly one is non-zero based on the encrypted tier.
-     *      All three paths are always executed — only the correct one
-     *      carries value.
      */
-    function _processWithTrustTier(Employee storage emp) internal {
+    function _processWithTrustTier(address employer, Employee storage emp) internal {
         ebool isHigh = trustScoring.isHighTrust(emp.wallet);
         ebool isMed  = trustScoring.isMediumTrust(emp.wallet);
 
-        // Ensure this contract can operate on the returned encrypted booleans
         FHE.allowThis(isHigh);
         FHE.allowThis(isMed);
 
         euint64 zero = FHE.asEuint64(0);
 
-        // Oblivious amount computation:
-        // HIGH  → full salary as instant, 0 delayed, 0 escrow
-        // MED   → 0 instant, full salary as delayed, 0 escrow
-        // LOW   → 0 instant, 0 delayed, full salary as escrow
         euint64 instantAmt = FHE.select(isHigh, emp.encryptedSalary, zero);
         euint64 remaining  = FHE.sub(emp.encryptedSalary, instantAmt);
         euint64 delayedAmt = FHE.select(isMed, remaining, zero);
         euint64 escrowAmt  = FHE.sub(remaining, delayedAmt);
 
-        // Process all three paths (two will carry encrypted zero)
-        _processInstantPayment(emp.wallet, instantAmt);
-        _processDelayedPayment(emp.wallet, delayedAmt);
-        _processEscrowPaymentEncrypted(emp.wallet, escrowAmt);
+        _processInstantPayment(employer, emp.wallet, instantAmt);
+        _processDelayedPayment(employer, emp.wallet, delayedAmt);
+        _processEscrowPaymentEncrypted(employer, emp.wallet, escrowAmt);
     }
 
     /**
      * @dev Handles an instant payment (HIGH trust path).
-     *      Executes an immediate confidential transfer from the contract's
-     *      token balance to the employee.
      */
     function _processInstantPayment(
+        address employer,
         address employee,
         euint64 amount
     ) internal {
         FHE.allowThis(amount);
 
-        // Execute immediate confidential transfer
         FHE.allow(amount, payToken);
         IERC7984(payToken).confidentialTransfer(employee, amount);
 
-        // Record for audit trail
         uint256 id = nextPaymentId++;
 
         pendingPayments[id] = PendingPayment({
             id:              id,
             employee:        employee,
+            employer:        employer,
             encryptedAmount: amount,
             status:          PaymentStatus.Instant,
             createdAt:       block.timestamp,
@@ -682,13 +692,14 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
             milestone:       ""
         });
 
-        emit InstantPayment(employee, block.timestamp);
+        emit InstantPayment(employer, employee, block.timestamp);
     }
 
     /**
      * @dev Handles a delayed payment (MEDIUM trust path).
      */
     function _processDelayedPayment(
+        address employer,
         address employee,
         euint64 amount
     ) internal {
@@ -700,6 +711,7 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         pendingPayments[id] = PendingPayment({
             id:              id,
             employee:        employee,
+            employer:        employer,
             encryptedAmount: amount,
             status:          PaymentStatus.Delayed,
             createdAt:       block.timestamp,
@@ -714,6 +726,7 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
      * @dev Handles an escrow payment from the FHE routing path.
      */
     function _processEscrowPaymentEncrypted(
+        address employer,
         address employee,
         euint64 amount
     ) internal {
@@ -724,6 +737,7 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
         pendingPayments[id] = PendingPayment({
             id:              id,
             employee:        employee,
+            employer:        employer,
             encryptedAmount: amount,
             status:          PaymentStatus.Escrowed,
             createdAt:       block.timestamp,
@@ -736,14 +750,14 @@ contract PayGramCore is ZamaEthereumConfig, Ownable2Step {
 
     /**
      * @dev Handles an escrow payment for unscored employees.
-     *      Uses the employee's stored encrypted salary directly.
      */
-    function _processEscrowPayment(Employee storage emp) internal {
+    function _processEscrowPayment(address employer, Employee storage emp) internal {
         uint256 id = nextPaymentId++;
 
         pendingPayments[id] = PendingPayment({
             id:              id,
             employee:        emp.wallet,
+            employer:        employer,
             encryptedAmount: emp.encryptedSalary,
             status:          PaymentStatus.Escrowed,
             createdAt:       block.timestamp,

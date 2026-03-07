@@ -5,14 +5,14 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 /**
- * PayGramCore Test Suite
+ * PayGramCore Test Suite (Multi-Employer)
  *
  * Tests are split into two categories:
  *
- * 1. State & access-control tests — run on any Hardhat network. These verify
+ * 1. State & access-control tests -- run on any Hardhat network. These verify
  *    deployment, modifiers, view helpers, payment lifecycle, and event emissions.
  *
- * 2. FHE-dependent tests — require a Hardhat node with the Zama FHEVM
+ * 2. FHE-dependent tests -- require a Hardhat node with the Zama FHEVM
  *    coprocessor deployed. On vanilla Hardhat these auto-skip via
  *    try/catch + this.skip().
  */
@@ -24,6 +24,7 @@ describe("PayGramCore", function () {
 
   let owner: HardhatEthersSigner;
   let employer: HardhatEthersSigner;
+  let employer2: HardhatEthersSigner;
   let employee1: HardhatEthersSigner;
   let employee2: HardhatEthersSigner;
   let employee3: HardhatEthersSigner;
@@ -39,13 +40,14 @@ describe("PayGramCore", function () {
    */
   async function addEmployeeOrSkip(
     ctx: Mocha.Context,
+    emp: HardhatEthersSigner,
     wallet: HardhatEthersSigner,
     salary: number,
     role: string
   ) {
     try {
       await payGramCore
-        .connect(employer)
+        .connect(emp)
         .addEmployeePlaintext(wallet.address, salary, role);
     } catch {
       ctx.skip();
@@ -57,6 +59,7 @@ describe("PayGramCore", function () {
    */
   async function addScoredEmployeeOrSkip(
     ctx: Mocha.Context,
+    emp: HardhatEthersSigner,
     wallet: HardhatEthersSigner,
     salary: number,
     role: string,
@@ -64,7 +67,7 @@ describe("PayGramCore", function () {
   ) {
     try {
       await payGramCore
-        .connect(employer)
+        .connect(emp)
         .addEmployeePlaintext(wallet.address, salary, role);
       await trustScoring
         .connect(oracle)
@@ -75,7 +78,7 @@ describe("PayGramCore", function () {
   }
 
   beforeEach(async function () {
-    [owner, employer, employee1, employee2, employee3, oracle, unauthorized] =
+    [owner, employer, employer2, employee1, employee2, employee3, oracle, unauthorized] =
       await ethers.getSigners();
 
     // Deploy TrustScoring
@@ -90,7 +93,6 @@ describe("PayGramCore", function () {
     // Deploy PayGramToken (initial supply = 0; FHE-dependent constructor mint skipped)
     const PayGramTokenFactory =
       await ethers.getContractFactory("PayGramToken");
-    // Use 0 initial supply to avoid FHE in constructor
     payGramToken = await PayGramTokenFactory.deploy(owner.address, 0);
     await payGramToken.waitForDeployment();
 
@@ -104,6 +106,9 @@ describe("PayGramCore", function () {
       await payGramToken.getAddress()
     );
     await payGramCore.waitForDeployment();
+
+    // Wire TrustScoring -> PayGramCore for employer-scoped scoring
+    await trustScoring.connect(owner).setPayGramCore(await payGramCore.getAddress());
 
     // Detect FHE availability by trying a minimal FHE operation
     try {
@@ -127,8 +132,8 @@ describe("PayGramCore", function () {
       expect(await payGramCore.owner()).to.equal(owner.address);
     });
 
-    it("should set the correct employer", async function () {
-      expect(await payGramCore.employer()).to.equal(employer.address);
+    it("should register the initial employer", async function () {
+      expect(await payGramCore.isEmployer(employer.address)).to.equal(true);
     });
 
     it("should reference the correct TrustScoring contract", async function () {
@@ -143,12 +148,12 @@ describe("PayGramCore", function () {
       );
     });
 
-    it("should start with zero employees", async function () {
-      expect(await payGramCore.employeeCount()).to.equal(0);
+    it("should start with zero employees for employer", async function () {
+      expect(await payGramCore.employeeCount(employer.address)).to.equal(0);
     });
 
-    it("should start with zero payrolls executed", async function () {
-      expect(await payGramCore.totalPayrollsExecuted()).to.equal(0);
+    it("should start with zero payrolls executed for employer", async function () {
+      expect(await payGramCore.employerPayrollCount(employer.address)).to.equal(0);
     });
 
     it("should start with nextPaymentId at zero", async function () {
@@ -201,16 +206,41 @@ describe("PayGramCore", function () {
   });
 
   // ================================================================
+  //  EMPLOYER REGISTRATION
+  // ================================================================
+
+  describe("Employer Registration", function () {
+    it("should allow anyone to register as employer", async function () {
+      await payGramCore.connect(employer2).registerAsEmployer();
+      expect(await payGramCore.isEmployer(employer2.address)).to.equal(true);
+    });
+
+    it("should emit EmployerRegistered event", async function () {
+      await expect(payGramCore.connect(employer2).registerAsEmployer())
+        .to.emit(payGramCore, "EmployerRegistered")
+        .withArgs(employer2.address);
+    });
+
+    it("should reject double registration", async function () {
+      await expect(
+        payGramCore.connect(employer).registerAsEmployer()
+      ).to.be.revertedWithCustomError(payGramCore, "AlreadyEmployer");
+    });
+
+    it("should not be employer by default", async function () {
+      expect(await payGramCore.isEmployer(unauthorized.address)).to.equal(false);
+    });
+  });
+
+  // ================================================================
   //  EMPLOYEE MANAGEMENT
   // ================================================================
 
   describe("Employee Management", function () {
-    // -- Adding employees (FHE-dependent) --
-
     it("should add an employee with plaintext salary", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
-      expect(await payGramCore.employeeCount()).to.equal(1);
-      expect(await payGramCore.isActiveEmployee(employee1.address)).to.equal(true);
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
+      expect(await payGramCore.employeeCount(employer.address)).to.equal(1);
+      expect(await payGramCore.isActiveEmployee(employer.address, employee1.address)).to.equal(true);
     });
 
     it("should emit EmployeeAdded event", async function () {
@@ -226,14 +256,14 @@ describe("PayGramCore", function () {
     });
 
     it("should store correct employee role", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "designer");
-      const [, , , , role] = await payGramCore.getEmployee(employee1.address);
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "designer");
+      const [, , , , role] = await payGramCore.getEmployee(employer.address, employee1.address);
       expect(role).to.equal("designer");
     });
 
     it("should store correct hire date", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
-      const [, , hireDate] = await payGramCore.getEmployee(employee1.address);
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
+      const [, , hireDate] = await payGramCore.getEmployee(employer.address, employee1.address);
       expect(hireDate).to.be.gt(0);
     });
 
@@ -246,7 +276,7 @@ describe("PayGramCore", function () {
     });
 
     it("should reject duplicate employee", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await expect(
         payGramCore
           .connect(employer)
@@ -263,7 +293,7 @@ describe("PayGramCore", function () {
     });
 
     it("should track employee list correctly", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "a");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "a");
       try {
         await payGramCore
           .connect(employer)
@@ -271,7 +301,7 @@ describe("PayGramCore", function () {
       } catch {
         this.skip();
       }
-      const list = await payGramCore.getEmployeeList();
+      const list = await payGramCore.getEmployeeList(employer.address);
       expect(list.length).to.equal(2);
       expect(list[0]).to.equal(employee1.address);
       expect(list[1]).to.equal(employee2.address);
@@ -280,18 +310,18 @@ describe("PayGramCore", function () {
     // -- Removing employees --
 
     it("should remove an employee (set inactive)", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).removeEmployee(employee1.address);
-      expect(await payGramCore.isActiveEmployee(employee1.address)).to.equal(false);
+      expect(await payGramCore.isActiveEmployee(employer.address, employee1.address)).to.equal(false);
     });
 
     it("should emit EmployeeRemoved event", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await expect(
         payGramCore.connect(employer).removeEmployee(employee1.address)
       )
         .to.emit(payGramCore, "EmployeeRemoved")
-        .withArgs(employee1.address);
+        .withArgs(employer.address, employee1.address);
     });
 
     it("should revert removing non-existent employee", async function () {
@@ -301,7 +331,7 @@ describe("PayGramCore", function () {
     });
 
     it("should revert removing already-inactive employee", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).removeEmployee(employee1.address);
       await expect(
         payGramCore.connect(employer).removeEmployee(employee1.address)
@@ -317,7 +347,7 @@ describe("PayGramCore", function () {
     // -- Active employee count --
 
     it("should track active employee count correctly", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "a");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "a");
       try {
         await payGramCore
           .connect(employer)
@@ -325,32 +355,32 @@ describe("PayGramCore", function () {
       } catch {
         this.skip();
       }
-      expect(await payGramCore.activeEmployeeCount()).to.equal(2);
+      expect(await payGramCore.activeEmployeeCount(employer.address)).to.equal(2);
 
       await payGramCore.connect(employer).removeEmployee(employee1.address);
-      expect(await payGramCore.activeEmployeeCount()).to.equal(1);
+      expect(await payGramCore.activeEmployeeCount(employer.address)).to.equal(1);
     });
 
     // -- Updating role --
 
     it("should update employee role", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "junior");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "junior");
       await payGramCore
         .connect(employer)
         .updateEmployeeRole(employee1.address, "senior");
-      const [, , , , role] = await payGramCore.getEmployee(employee1.address);
+      const [, , , , role] = await payGramCore.getEmployee(employer.address, employee1.address);
       expect(role).to.equal("senior");
     });
 
     it("should emit EmployeeUpdated on role change", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "junior");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "junior");
       await expect(
         payGramCore
           .connect(employer)
           .updateEmployeeRole(employee1.address, "senior")
       )
         .to.emit(payGramCore, "EmployeeUpdated")
-        .withArgs(employee1.address);
+        .withArgs(employer.address, employee1.address);
     });
 
     it("should revert role update for non-existent employee", async function () {
@@ -362,7 +392,7 @@ describe("PayGramCore", function () {
     });
 
     it("should revert role update for inactive employee", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).removeEmployee(employee1.address);
       await expect(
         payGramCore
@@ -374,7 +404,7 @@ describe("PayGramCore", function () {
     // -- Salary updates --
 
     it("should update salary via plaintext helper", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       try {
         await payGramCore
           .connect(employer)
@@ -382,11 +412,10 @@ describe("PayGramCore", function () {
       } catch {
         this.skip();
       }
-      // If we reach here, the update succeeded (FHE was available)
     });
 
     it("should emit SalaryUpdated on salary change", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       try {
         await expect(
           payGramCore
@@ -394,7 +423,7 @@ describe("PayGramCore", function () {
             .updateSalaryPlaintext(employee1.address, 7000)
         )
           .to.emit(payGramCore, "SalaryUpdated")
-          .withArgs(employee1.address);
+          .withArgs(employer.address, employee1.address);
       } catch {
         this.skip();
       }
@@ -418,6 +447,70 @@ describe("PayGramCore", function () {
   });
 
   // ================================================================
+  //  MULTI-EMPLOYER ISOLATION
+  // ================================================================
+
+  describe("Multi-Employer Isolation", function () {
+    beforeEach(async function () {
+      // Register employer2
+      await payGramCore.connect(employer2).registerAsEmployer();
+    });
+
+    it("should keep employee lists separate per employer", async function () {
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "a");
+      try {
+        await payGramCore
+          .connect(employer2)
+          .addEmployeePlaintext(employee2.address, 6000, "b");
+      } catch {
+        this.skip();
+      }
+
+      const list1 = await payGramCore.getEmployeeList(employer.address);
+      const list2 = await payGramCore.getEmployeeList(employer2.address);
+
+      expect(list1.length).to.equal(1);
+      expect(list1[0]).to.equal(employee1.address);
+      expect(list2.length).to.equal(1);
+      expect(list2[0]).to.equal(employee2.address);
+    });
+
+    it("should allow same employee under different employers", async function () {
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "dev");
+      try {
+        await payGramCore
+          .connect(employer2)
+          .addEmployeePlaintext(employee1.address, 8000, "consultant");
+      } catch {
+        this.skip();
+      }
+
+      const [, , , , role1] = await payGramCore.getEmployee(employer.address, employee1.address);
+      const [, , , , role2] = await payGramCore.getEmployee(employer2.address, employee1.address);
+      expect(role1).to.equal("dev");
+      expect(role2).to.equal("consultant");
+    });
+
+    it("should track payroll counts independently", async function () {
+      await payGramCore.connect(employer).executePayroll();
+      await payGramCore.connect(employer).executePayroll();
+      await payGramCore.connect(employer2).executePayroll();
+
+      expect(await payGramCore.employerPayrollCount(employer.address)).to.equal(2);
+      expect(await payGramCore.employerPayrollCount(employer2.address)).to.equal(1);
+    });
+
+    it("should not let employer remove another employer's employee", async function () {
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "dev");
+
+      // employer2 tries to remove employer's employee
+      await expect(
+        payGramCore.connect(employer2).removeEmployee(employee1.address)
+      ).to.be.revertedWithCustomError(payGramCore, "EmployeeNotFound");
+    });
+  });
+
+  // ================================================================
   //  PAYROLL EXECUTION
   // ================================================================
 
@@ -430,7 +523,7 @@ describe("PayGramCore", function () {
 
     it("should handle payroll with no employees", async function () {
       await payGramCore.connect(employer).executePayroll();
-      expect(await payGramCore.totalPayrollsExecuted()).to.equal(1);
+      expect(await payGramCore.employerPayrollCount(employer.address)).to.equal(1);
     });
 
     it("should emit PayrollExecuted event", async function () {
@@ -438,50 +531,47 @@ describe("PayGramCore", function () {
         .to.emit(payGramCore, "PayrollExecuted");
     });
 
-    it("should increment totalPayrollsExecuted", async function () {
+    it("should increment employerPayrollCount", async function () {
       await payGramCore.connect(employer).executePayroll();
       await payGramCore.connect(employer).executePayroll();
-      expect(await payGramCore.totalPayrollsExecuted()).to.equal(2);
+      expect(await payGramCore.employerPayrollCount(employer.address)).to.equal(2);
     });
 
     it("should skip inactive employees during payroll", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).removeEmployee(employee1.address);
 
-      // Payroll should process 0 active employees (event shows 0)
       await payGramCore.connect(employer).executePayroll();
-      expect(await payGramCore.totalPayrollsExecuted()).to.equal(1);
+      expect(await payGramCore.employerPayrollCount(employer.address)).to.equal(1);
     });
 
     it("should create escrowed payment for unscored employee", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
 
-      // employee1 has no trust score → should be escrowed
       await payGramCore.connect(employer).executePayroll();
 
       const paymentId = 0;
-      const [empAddr, status, , , milestone] =
+      const [empAddr, empEmployer, status, , , milestone] =
         await payGramCore.getPendingPayment(paymentId);
       expect(empAddr).to.equal(employee1.address);
+      expect(empEmployer).to.equal(employer.address);
       expect(status).to.equal(3); // Escrowed = 3
       expect(milestone).to.equal("Pending employer approval");
     });
 
     it("should update lastPayDate after payroll", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).executePayroll();
 
-      const [, , , lastPay] = await payGramCore.getEmployee(employee1.address);
+      const [, , , lastPay] = await payGramCore.getEmployee(employer.address, employee1.address);
       expect(lastPay).to.be.gt(0);
     });
 
     it("should execute payroll with scored employee (FHE routing)", async function () {
-      // FHE-dependent: trust tier evaluation
-      await addScoredEmployeeOrSkip(this, employee1, 5000, "engineer", 85);
+      await addScoredEmployeeOrSkip(this, employer, employee1, 5000, "engineer", 85);
 
       try {
         await payGramCore.connect(employer).executePayroll();
-        // Should have created 3 payment records (oblivious routing)
         expect(await payGramCore.nextPaymentId()).to.equal(3);
       } catch {
         this.skip();
@@ -489,8 +579,7 @@ describe("PayGramCore", function () {
     });
 
     it("should process mixed scored/unscored batch", async function () {
-      // employee1: scored (FHE-dependent), employee2: unscored
-      await addEmployeeOrSkip(this, employee1, 5000, "a");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "a");
       try {
         await payGramCore
           .connect(employer)
@@ -499,9 +588,7 @@ describe("PayGramCore", function () {
         this.skip();
       }
 
-      // Only employee2 is unscored, employee1 has no score either in this path
       await payGramCore.connect(employer).executePayroll();
-      // Both unscored → 2 escrowed payments
       expect(await payGramCore.nextPaymentId()).to.equal(2);
     });
   });
@@ -511,10 +598,6 @@ describe("PayGramCore", function () {
   // ================================================================
 
   describe("Payment Management", function () {
-    // Helper: set up a delayed payment manually by creating an unscored
-    // employee payroll (creates escrowed). We test release/cancel logic
-    // on the resulting PendingPayment.
-
     it("should revert release for non-existent payment", async function () {
       await expect(
         payGramCore.connect(employer).releasePayment(999)
@@ -528,43 +611,41 @@ describe("PayGramCore", function () {
     });
 
     it("should release an escrowed payment (employer approval)", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
 
-      // Execute payroll → creates escrowed payment (no score)
       await payGramCore.connect(employer).executePayroll();
 
-      // Release escrowed payment
       await expect(payGramCore.connect(employer).releasePayment(0))
         .to.emit(payGramCore, "PaymentReleased")
         .withArgs(0, employee1.address);
 
-      const [, status] = await payGramCore.getPendingPayment(0);
+      const [, , status] = await payGramCore.getPendingPayment(0);
       expect(status).to.equal(4); // Released = 4
     });
 
     it("should reject non-employer releasing escrowed payment", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).executePayroll();
 
       await expect(
         payGramCore.connect(unauthorized).releasePayment(0)
-      ).to.be.revertedWithCustomError(payGramCore, "NotEmployer");
+      ).to.be.revertedWithCustomError(payGramCore, "NotPaymentEmployer");
     });
 
     it("should cancel a pending escrowed payment", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).executePayroll();
 
       await expect(payGramCore.connect(employer).cancelPayment(0))
         .to.emit(payGramCore, "PaymentCancelled")
         .withArgs(0, employee1.address);
 
-      const [, status] = await payGramCore.getPendingPayment(0);
+      const [, , status] = await payGramCore.getPendingPayment(0);
       expect(status).to.equal(5); // Completed = 5
     });
 
     it("should reject cancelling already-released payment", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).executePayroll();
       await payGramCore.connect(employer).releasePayment(0);
 
@@ -574,7 +655,7 @@ describe("PayGramCore", function () {
     });
 
     it("should reject releasing already-released payment", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).executePayroll();
       await payGramCore.connect(employer).releasePayment(0);
 
@@ -584,7 +665,7 @@ describe("PayGramCore", function () {
     });
 
     it("should reject releasing cancelled payment", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).executePayroll();
       await payGramCore.connect(employer).cancelPayment(0);
 
@@ -594,16 +675,26 @@ describe("PayGramCore", function () {
     });
 
     it("should reject non-employer cancelling payment", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).executePayroll();
 
       await expect(
         payGramCore.connect(unauthorized).cancelPayment(0)
-      ).to.be.revertedWithCustomError(payGramCore, "NotEmployer");
+      ).to.be.revertedWithCustomError(payGramCore, "NotPaymentEmployer");
+    });
+
+    it("should reject another employer cancelling payment", async function () {
+      await payGramCore.connect(employer2).registerAsEmployer();
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
+      await payGramCore.connect(employer).executePayroll();
+
+      await expect(
+        payGramCore.connect(employer2).cancelPayment(0)
+      ).to.be.revertedWithCustomError(payGramCore, "NotPaymentEmployer");
     });
 
     it("should track pending payments for an employee", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).executePayroll();
       await payGramCore.connect(employer).executePayroll();
 
@@ -616,17 +707,16 @@ describe("PayGramCore", function () {
     });
 
     it("should list releasable payments", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).executePayroll();
 
-      // Escrowed payment is always releasable (by employer)
       const releasable = await payGramCore.getReleasablePayments();
       expect(releasable.length).to.equal(1);
       expect(releasable[0]).to.equal(0);
     });
 
     it("should remove released payment from releasable list", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).executePayroll();
       await payGramCore.connect(employer).releasePayment(0);
 
@@ -640,24 +730,17 @@ describe("PayGramCore", function () {
   // ================================================================
 
   describe("Delayed Payment Time-Lock", function () {
-    // These tests require FHE to create a delayed payment (medium-trust
-    // scored employee). If FHE is unavailable, they test the release
-    // logic with manually created escrowed payments instead.
-
     it("should reject early release of delayed payment (FHE path)", async function () {
-      // Requires FHE: medium-trust employee → delayed payment
-      await addScoredEmployeeOrSkip(this, employee1, 5000, "engineer", 50);
+      await addScoredEmployeeOrSkip(this, employer, employee1, 5000, "engineer", 50);
 
       try {
         await payGramCore.connect(employer).executePayroll();
 
-        // Find the delayed payment among the 3 created records
         let delayedId: number | null = null;
         const total = Number(await payGramCore.nextPaymentId());
         for (let i = 0; i < total; i++) {
-          const [, status] = await payGramCore.getPendingPayment(i);
+          const [, , status] = await payGramCore.getPendingPayment(i);
           if (status === 2n) {
-            // Delayed = 2
             delayedId = i;
             break;
           }
@@ -674,7 +757,7 @@ describe("PayGramCore", function () {
     });
 
     it("should release delayed payment after hold period (FHE path)", async function () {
-      await addScoredEmployeeOrSkip(this, employee1, 5000, "engineer", 50);
+      await addScoredEmployeeOrSkip(this, employer, employee1, 5000, "engineer", 50);
 
       try {
         await payGramCore.connect(employer).executePayroll();
@@ -682,7 +765,7 @@ describe("PayGramCore", function () {
         let delayedId: number | null = null;
         const total = Number(await payGramCore.nextPaymentId());
         for (let i = 0; i < total; i++) {
-          const [, status] = await payGramCore.getPendingPayment(i);
+          const [, , status] = await payGramCore.getPendingPayment(i);
           if (status === 2n) {
             delayedId = i;
             break;
@@ -690,7 +773,6 @@ describe("PayGramCore", function () {
         }
 
         if (delayedId !== null) {
-          // Advance time past 24h delay
           await time.increase(25 * 60 * 60);
 
           await expect(
@@ -710,7 +792,7 @@ describe("PayGramCore", function () {
   describe("View Functions", function () {
     it("should revert getEmployee for unknown address", async function () {
       await expect(
-        payGramCore.getEmployee(employee1.address)
+        payGramCore.getEmployee(employer.address, employee1.address)
       ).to.be.revertedWithCustomError(payGramCore, "EmployeeNotFound");
     });
 
@@ -721,28 +803,28 @@ describe("PayGramCore", function () {
     });
 
     it("should return employee data correctly", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
 
       const [wallet, isActive, hireDate, lastPay, role] =
-        await payGramCore.getEmployee(employee1.address);
+        await payGramCore.getEmployee(employer.address, employee1.address);
       expect(wallet).to.equal(employee1.address);
       expect(isActive).to.equal(true);
       expect(hireDate).to.be.gt(0);
-      expect(lastPay).to.equal(0); // Not paid yet
+      expect(lastPay).to.equal(0);
       expect(role).to.equal("engineer");
     });
 
     it("should return empty employee list initially", async function () {
-      const list = await payGramCore.getEmployeeList();
+      const list = await payGramCore.getEmployeeList(employer.address);
       expect(list.length).to.equal(0);
     });
 
     it("should return zero active employees initially", async function () {
-      expect(await payGramCore.activeEmployeeCount()).to.equal(0);
+      expect(await payGramCore.activeEmployeeCount(employer.address)).to.equal(0);
     });
 
     it("should report isActiveEmployee as false for unknown address", async function () {
-      expect(await payGramCore.isActiveEmployee(employee1.address)).to.equal(false);
+      expect(await payGramCore.isActiveEmployee(employer.address, employee1.address)).to.equal(false);
     });
 
     it("should return empty pending payments for unregistered employee", async function () {
@@ -758,15 +840,16 @@ describe("PayGramCore", function () {
     });
 
     it("should return payment details correctly", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).executePayroll();
 
-      const [empAddr, status, createdAt, releaseTime, milestone] =
+      const [empAddr, empEmployer, status, createdAt, releaseTime, milestone] =
         await payGramCore.getPendingPayment(0);
       expect(empAddr).to.equal(employee1.address);
+      expect(empEmployer).to.equal(employer.address);
       expect(status).to.equal(3); // Escrowed
       expect(createdAt).to.be.gt(0);
-      expect(releaseTime).to.equal(0); // No time-lock for escrow
+      expect(releaseTime).to.equal(0);
       expect(milestone).to.equal("Pending employer approval");
     });
   });
@@ -777,7 +860,7 @@ describe("PayGramCore", function () {
 
   describe("Admin Functions", function () {
     it("should update TrustScoring address", async function () {
-      const newAddr = employee3.address; // arbitrary address
+      const newAddr = employee3.address;
       await expect(
         payGramCore.connect(owner).updateTrustScoring(newAddr)
       )
@@ -823,43 +906,6 @@ describe("PayGramCore", function () {
         "OwnableUnauthorizedAccount"
       );
     });
-
-    it("should transfer employer role", async function () {
-      await expect(
-        payGramCore.connect(owner).transferEmployer(employee3.address)
-      )
-        .to.emit(payGramCore, "EmployerTransferred")
-        .withArgs(employer.address, employee3.address);
-      expect(await payGramCore.employer()).to.equal(employee3.address);
-    });
-
-    it("should reject transferEmployer with zero address", async function () {
-      await expect(
-        payGramCore.connect(owner).transferEmployer(ethers.ZeroAddress)
-      ).to.be.revertedWithCustomError(payGramCore, "ZeroAddress");
-    });
-
-    it("should reject transferEmployer from non-owner", async function () {
-      await expect(
-        payGramCore.connect(unauthorized).transferEmployer(employee3.address)
-      ).to.be.revertedWithCustomError(
-        payGramCore,
-        "OwnableUnauthorizedAccount"
-      );
-    });
-
-    it("should allow new employer to manage employees after transfer", async function () {
-      await payGramCore.connect(owner).transferEmployer(employee3.address);
-
-      // Old employer should be rejected
-      await expect(
-        payGramCore.connect(employer).executePayroll()
-      ).to.be.revertedWithCustomError(payGramCore, "NotEmployer");
-
-      // New employer should work
-      await payGramCore.connect(employee3).executePayroll();
-      expect(await payGramCore.totalPayrollsExecuted()).to.equal(1);
-    });
   });
 
   // ================================================================
@@ -889,11 +935,10 @@ describe("PayGramCore", function () {
       await payGramCore.connect(owner).transferOwnership(employee1.address);
       await payGramCore.connect(employee1).acceptOwnership();
 
-      // New owner can update admin settings
       await payGramCore
         .connect(employee1)
-        .transferEmployer(employee2.address);
-      expect(await payGramCore.employer()).to.equal(employee2.address);
+        .updateTrustScoring(employee2.address);
+      expect(await payGramCore.trustScoring()).to.equal(employee2.address);
     });
   });
 
@@ -903,13 +948,13 @@ describe("PayGramCore", function () {
 
   describe("Edge Cases", function () {
     it("should handle multiple payroll runs", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
 
       await payGramCore.connect(employer).executePayroll();
       await payGramCore.connect(employer).executePayroll();
       await payGramCore.connect(employer).executePayroll();
 
-      expect(await payGramCore.totalPayrollsExecuted()).to.equal(3);
+      expect(await payGramCore.employerPayrollCount(employer.address)).to.equal(3);
       expect(await payGramCore.nextPaymentId()).to.equal(3);
 
       const payments = await payGramCore.getPendingPaymentsForEmployee(
@@ -919,32 +964,30 @@ describe("PayGramCore", function () {
     });
 
     it("should handle payroll when all employees are inactive", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).removeEmployee(employee1.address);
 
       await payGramCore.connect(employer).executePayroll();
-      expect(await payGramCore.totalPayrollsExecuted()).to.equal(1);
-      // No payments created
+      expect(await payGramCore.employerPayrollCount(employer.address)).to.equal(1);
       expect(await payGramCore.nextPaymentId()).to.equal(0);
     });
 
     it("should retain removed employee in list for audit", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "engineer");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "engineer");
       await payGramCore.connect(employer).removeEmployee(employee1.address);
 
-      // Employee still in list but inactive
-      expect(await payGramCore.employeeCount()).to.equal(1);
-      expect(await payGramCore.isActiveEmployee(employee1.address)).to.equal(false);
+      expect(await payGramCore.employeeCount(employer.address)).to.equal(1);
+      expect(await payGramCore.isActiveEmployee(employer.address, employee1.address)).to.equal(false);
 
       const [wallet, isActive] = await payGramCore.getEmployee(
-        employee1.address
+        employer.address, employee1.address
       );
       expect(wallet).to.equal(employee1.address);
       expect(isActive).to.equal(false);
     });
 
     it("should handle payroll with mixed active/inactive employees", async function () {
-      await addEmployeeOrSkip(this, employee1, 5000, "a");
+      await addEmployeeOrSkip(this, employer, employee1, 5000, "a");
       try {
         await payGramCore
           .connect(employer)
@@ -956,7 +999,6 @@ describe("PayGramCore", function () {
       await payGramCore.connect(employer).removeEmployee(employee1.address);
       await payGramCore.connect(employer).executePayroll();
 
-      // Only employee2 is active → 1 payment
       expect(await payGramCore.nextPaymentId()).to.equal(1);
       const [empAddr] = await payGramCore.getPendingPayment(0);
       expect(empAddr).to.equal(employee2.address);
